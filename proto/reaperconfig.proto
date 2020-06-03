@@ -1,0 +1,52 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper";
+
+message ReaperCluster {
+    repeated ReaperConfig configs = 1;
+}
+
+message ReaperConfig {
+    repeated ResourceConfig resources = 1;
+    int64 schedule = 2;
+    string skipFilter = 3;
+    string projectId = 4;
+    string uuid = 5;
+}
+
+message ResourceConfig {
+    ResourceType resourceType = 1;
+    string nameFilter = 2;
+    string skipFilter = 3; // regex with or join
+    repeated string zones = 4;
+    string TTL = 5;
+}
+
+// Be more specific (i.e. GCE VMs)
+enum ResourceType {
+    GCS_BUCKET = 0;
+    Bigquery = 1;
+    GCE = 2;
+}
+
+// Skip filter beats name filter
+// Cron time string format: https://support.acquia.com/hc/en-us/articles/360004224494-Cron-time-string-format
+
+// Time
+// s m h w m
+// * * 1 * *
+
+// -----------------------------------------------------------------------------------------
+// Calling Example 
+// -----------------------------------------------------------------------------------------
+
+// reaperConfig := ReaperConfig{
+//     resources: []ResouceConfig{
+//         {GCS, "nameRegex", "US-EAST-A", "10000"},
+//         {GCE, "nameRegex", "US-EAST-B", "10001"},
+//     },
+//     schedule: 1000,
+//     project: "GCP_Project", 
+// }
+// reaper := RegisterNewReaper(reaperConfig)
