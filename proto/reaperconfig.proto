@@ -3,50 +3,65 @@ package proto;
 
 option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper";
 
+/*
+A reaper cluster is for running multiple reapers within the same GKE cluster,
+allowing for ease of organization and monitoring of all running reapers.
+*/
 message ReaperCluster {
+    // List of reapers that are running in the GKE cluster
     repeated ReaperConfig configs = 1;
 }
 
+/*
+A reaper config describes all the resources the reaper will monitor, and how
+often the reaper should run. Note that any resource that matches the skip
+filter will be excluded, even if it matches a name filter in a resource config.
+*/
 message ReaperConfig {
+    // List of resources to watch
     repeated ResourceConfig resources = 1;
-    int64 schedule = 2;
+
+    // Frequency to run reaper in cron time string format
+    string schedule = 2;
+    
+    // Regex of names of resources to exclude
     string skipFilter = 3;
+    
+    // GCP Project ID
     string projectId = 4;
+    
+    //  Unique ID of the reaper
     string uuid = 5;
 }
 
+/*
+A resource config describes a group of cloud resource and their time to live
+(TTL). A resource will be deleted once it has been alive for longer than its
+TTL. Note that if a resource is caught by both the the name filter and skip
+filter, the resource will be excluded (i.e. not monitored).
+*/
 message ResourceConfig {
+    // Type of GCP resource
     ResourceType resourceType = 1;
+
+    // Regex of names of resources to include
     string nameFilter = 2;
-    string skipFilter = 3; // regex with or join
+    
+    // Regex of names of resources to exclude
+    string skipFilter = 3;
+    
+    // List of which GCP zones to search
     repeated string zones = 4;
+    
+    // Time to live of resources described in cron time string format
     string TTL = 5;
 }
 
-// Be more specific (i.e. GCE VMs)
+/*
+GCP resources that are supported for the reaper to monitor
+*/
 enum ResourceType {
-    GCS_BUCKET = 0;
-    Bigquery = 1;
-    GCE = 2;
+    GCE_VM = 0;
+    GCS_BUCKET = 1;
+    BIGQUERY = 2;
 }
-
-// Skip filter beats name filter
-// Cron time string format: https://support.acquia.com/hc/en-us/articles/360004224494-Cron-time-string-format
-
-// Time
-// s m h w m
-// * * 1 * *
-
-// -----------------------------------------------------------------------------------------
-// Calling Example 
-// -----------------------------------------------------------------------------------------
-
-// reaperConfig := ReaperConfig{
-//     resources: []ResouceConfig{
-//         {GCS, "nameRegex", "US-EAST-A", "10000"},
-//         {GCE, "nameRegex", "US-EAST-B", "10001"},
-//     },
-//     schedule: 1000,
-//     project: "GCP_Project", 
-// }
-// reaper := RegisterNewReaper(reaperConfig)
