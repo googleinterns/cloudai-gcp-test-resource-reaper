@@ -17,7 +17,14 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
-    embed = [":reaper_go_proto"],
-    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper",
+    embed = [":reaperconfig_go_proto"],
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig",
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "reaperconfig_go_proto",
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig",
+    proto = ":reaper_proto",
     visibility = ["//visibility:public"],
 )
