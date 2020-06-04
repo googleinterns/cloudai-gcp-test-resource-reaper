@@ -2,7 +2,15 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["clients.go"],
+    srcs = [
+        "clients.go",
+        "gce.go",
+    ],
     importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients",
     visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/resources:go_default_library",
+        "//proto:go_default_library",
+        "@org_golang_google_api//compute/v1:go_default_library",
+    ],
 )
