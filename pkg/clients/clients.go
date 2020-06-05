@@ -4,10 +4,11 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 )
 
 type Client interface {
-	Auth() error
+	Auth(opts ...option.ClientOption) error
 	GetResources(projectID string, config reaperconfig.ResourceConfig) ([]resources.Resource, error)
 	DeleteResource(projectID string, resource resources.Resource) error
 }
