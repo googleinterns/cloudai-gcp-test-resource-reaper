@@ -1,0 +1,23 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "reaperconfig_proto",
+    srcs = ["reaperconfig.proto"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "reaperconfig_go_proto",
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig",
+    proto = ":reaperconfig_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "go_default_library",
+    embed = [":reaperconfig_go_proto"],
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig",
+    visibility = ["//visibility:public"],
+)
