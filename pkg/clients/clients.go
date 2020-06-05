@@ -2,14 +2,14 @@ package clients
 
 import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
-	reaperpb "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
 )
 
 type Client interface {
 	Auth() error
-	GetResources(projectID string, config reaperpb.ResourceConfig) resources.Resource
-	DeleteResource(resource resources.Resource) error
+	GetResources(projectID string, config reaperconfig.ResourceConfig) ([]resources.Resource, error)
+	DeleteResource(projectID string, resource resources.Resource) error
 }
 
 type GCEClient struct {

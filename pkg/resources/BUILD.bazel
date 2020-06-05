@@ -5,4 +5,5 @@ go_library(
     srcs = ["resources.go"],
     importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources",
     visibility = ["//visibility:public"],
+    deps = ["//proto:go_default_library"],
 )

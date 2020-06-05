@@ -3,17 +3,17 @@ package resources
 import (
 	"time"
 
-	reaperpb "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 )
 
 type Resource struct {
 	Name        string
 	Zone        string
 	TimeCreated time.Time
-	Type        reaperpb.ResourceType
+	Type        reaperconfig.ResourceType
 }
 
-func NewResource(name, zone string, timeCreated time.Time, resourceType reaperpb.ResourceType) Resource {
+func NewResource(name, zone string, timeCreated time.Time, resourceType reaperconfig.ResourceType) Resource {
 	return Resource{name, zone, timeCreated, resourceType}
 }
 
@@ -28,6 +28,5 @@ func FilterResources(resources []Resource, nameFilter, skipFilter string) []Reso
 }
 
 func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter string) bool {
-
-	return false
+	return true
 }
