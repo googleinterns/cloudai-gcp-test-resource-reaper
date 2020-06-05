@@ -22,7 +22,7 @@ A reaper cluster is for running multiple reapers within the same GKE cluster,
 allowing for ease of organization and monitoring of all running reapers.
 */
 message ReaperCluster {
-    // List of reapers that are running in the GKE cluster
+    // List of reapers that are running in the GKE cluster.
     repeated ReaperConfig configs = 1;
 }
 
@@ -32,19 +32,20 @@ often the reaper should run. Note that any resource that matches the skip
 filter will be excluded, even if it matches a name filter in a resource config.
 */
 message ReaperConfig {
-    // List of resources to watch
+    // List of resources to watch.
     repeated ResourceConfig resources = 1;
 
-    // Frequency to run reaper in cron time string format
+    // Frequency to run reaper in cron time string format.
     string schedule = 2;
     
-    // Regex of names of resources to exclude
-    string skipFilter = 3;
+    // Regex of names of resources to exclude. Note that the skip filter wins
+    // over a name filter if they both match.
+    string skip_filter = 3;
     
-    // GCP Project ID
-    string projectID = 4;
+    // GCP Project ID.
+    string project_id = 4;
     
-    //  Unique ID of the reaper
+    //  Unique ID of the reaper.
     string uuid = 5;
 }
 
@@ -55,24 +56,25 @@ TTL. Note that if a resource is caught by both the the name filter and skip
 filter, the resource will be excluded (i.e. not monitored).
 */
 message ResourceConfig {
-    // Type of GCP resource
-    ResourceType resourceType = 1;
+    // Type of GCP resource.
+    ResourceType resource_type = 1;
 
-    // Regex of names of resources to include
-    string nameFilter = 2;
+    // Regex of names of resources to include.
+    string name_filter = 2;
     
-    // Regex of names of resources to exclude
-    string skipFilter = 3;
+    // Regex of names of resources to exclude. Note that the skip filter wins
+    // over a name filter if they both match.
+    string skip_filter = 3;
     
-    // List of which GCP zones to search
+    // List of which GCP zones to search.
     repeated string zones = 4;
     
-    // Time to live of resources described in cron time string format
-    string TTL = 5;
+    // Time to live of resources described in cron time string format.
+    string ttl = 5;
 }
 
 /*
-GCP resources that are supported for the reaper to monitor
+GCP resources that are supported for the reaper to monitor.
 */
 enum ResourceType {
     GCE_VM = 0;
