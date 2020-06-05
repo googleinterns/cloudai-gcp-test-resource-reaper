@@ -14,8 +14,8 @@
 
 syntax = "proto3";
 
-package proto;
-option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper";
+package reaperconfig;
+option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig";
 
 /*
 A reaper cluster is for running multiple reapers within the same GKE cluster,
