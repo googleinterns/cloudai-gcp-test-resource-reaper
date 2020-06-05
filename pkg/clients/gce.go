@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	reaperpb "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
@@ -21,7 +21,7 @@ func (client *GCEClient) Auth() error {
 }
 
 // Can either get all resources and filter elsewhere, or filter in here (latter is more efficient)
-func (client *GCEClient) GetResources(projectID string, config reaperpb.ResourceConfig) ([]resources.Resource, error) {
+func (client *GCEClient) GetResources(projectID string, config reaperconfig.ResourceConfig) ([]resources.Resource, error) {
 	var instances []resources.Resource
 	zones := config.GetZones()
 	for _, zone := range zones {
@@ -32,7 +32,7 @@ func (client *GCEClient) GetResources(projectID string, config reaperpb.Resource
 		}
 		for _, instance := range instancesInZone.Items {
 			timeCreated, _ := time.Parse(time.RFC3339, instance.CreationTimestamp)
-			parsedResource := resources.NewResource(instance.Name, zone, timeCreated, reaperpb.ResourceType_GCE_VM)
+			parsedResource := resources.NewResource(instance.Name, zone, timeCreated, reaperconfig.ResourceType_GCE_VM)
 			if resources.ShouldAddResourceToWatchlist(parsedResource, config.GetNameFilter(), config.GetSkipFilter()) {
 				instances = append(instances, parsedResource)
 			}
@@ -42,7 +42,9 @@ func (client *GCEClient) GetResources(projectID string, config reaperpb.Resource
 }
 
 func (client *GCEClient) DeleteResource(projectID string, resource resources.Resource) error {
-	client.Client.Instances.Delete(projectID, resource.Zone, resource.Name)
+	deleteInstanceCall := client.Client.Instances.Delete(projectID, resource.Zone, resource.Name)
+	_, err := deleteInstanceCall.Do()
+	return err
 }
 
 // withTransport
