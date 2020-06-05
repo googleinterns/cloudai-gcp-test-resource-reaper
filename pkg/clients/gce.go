@@ -6,13 +6,14 @@ import (
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 )
 
-func (client *GCEClient) Auth() error {
+func (client *GCEClient) Auth(opts ...option.ClientOption) error {
 	ctx := context.Background()
-	authedClient, err := gce.NewService(ctx)
+	authedClient, err := gce.NewService(ctx, opts...)
 	if err != nil {
 		return err
 	}
