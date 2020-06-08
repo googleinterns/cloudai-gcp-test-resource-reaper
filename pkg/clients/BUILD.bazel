@@ -20,4 +20,5 @@ go_test(
     name = "go_default_test",
     srcs = ["gce_test.go"],
     embed = [":go_default_library"],
+    deps = ["@org_golang_google_api//option:go_default_library"],
 )
