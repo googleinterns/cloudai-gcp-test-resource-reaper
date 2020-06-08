@@ -22,11 +22,14 @@ func (client *GCEClient) Auth(opts ...option.ClientOption) error {
 }
 
 // Can either get all resources and filter elsewhere, or filter in here (latter is more efficient)
+// GetResourcesWithFilter
 func (client *GCEClient) GetResources(projectID string, config reaperconfig.ResourceConfig) ([]resources.Resource, error) {
 	var instances []resources.Resource
 	zones := config.GetZones()
 	for _, zone := range zones {
 		zoneInstancesCall := client.Client.Instances.List(projectID, zone)
+		// Info on filtering: https://cloud.google.com/compute/docs/reference/rest/v1/instances/list
+		// zoneInstancesCall.Filter()
 		instancesInZone, err := zoneInstancesCall.Do()
 		if err != nil {
 			return nil, err
