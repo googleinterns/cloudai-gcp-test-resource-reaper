@@ -50,8 +50,3 @@ func (client *GCEClient) DeleteResource(projectID string, resource resources.Res
 	_, err := deleteInstanceCall.Do()
 	return err
 }
-
-// withTransport
-// https://pkg.go.dev/google.golang.org/api/option/?tab=doc
-// ExampleTest
-// Hermetic??
