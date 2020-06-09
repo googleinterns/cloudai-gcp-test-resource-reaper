@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
@@ -16,21 +17,33 @@ import (
 
 type Instance struct {
 	Name              string
-	Zone              string
 	CreationTimestamp string
 }
 
-var testInstances = map[string]map[string][]Instance{
-	"project1": {
-		"testZone1": []Instance{
-			newInstance("test1", "testZone1", "2019-10-12T07:20:50.52Z"),
-			newInstance("test2", "testZone1", "2019-10-12T07:20:50.52Z"),
-			newInstance("test3", "testZone1", "2019-10-12T07:20:50.52Z"),
-			newInstance("differentName", "testZone1", "2019-10-12T07:20:50.52Z"),
+var (
+	timeCreatedString = "2019-10-12T07:20:50.52Z"
+	timeCreated, _    = time.Parse(time.RFC3339, timeCreatedString)
+	testInstances     = map[string]map[string][]Instance{
+		"project1": {
+			"testZone1": []Instance{
+				newInstance("test1", timeCreatedString),
+				newInstance("test2", timeCreatedString),
+				newInstance("test3", timeCreatedString),
+				newInstance("differentName", timeCreatedString),
+			},
+			"testZone2": []Instance{
+				newInstance("test1", timeCreatedString),
+				newInstance("test2", timeCreatedString),
+			},
 		},
-		"testZone2": []Instance{},
-	},
-}
+		"project2": {
+			"testZone1": []Instance{
+				newInstance("testProject2", timeCreatedString),
+				newInstance("different", timeCreatedString),
+			},
+		},
+	}
+)
 
 func TestAuth(t *testing.T) {
 	client := GCEClient{}
@@ -51,7 +64,33 @@ type GetResourceTestCase struct {
 }
 
 var testGetResourcesCases = []GetResourceTestCase{
-	GetResourceTestCase{"project1", "test", "", []string{"testZone1"}, []resources.Resource{}},
+	GetResourceTestCase{"project1", "test", "", []string{"testZone1"}, []resources.Resource{
+		resources.NewResource("test1", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
+	GetResourceTestCase{"project1", "test", "", []string{"testZone1", "testZone2"}, []resources.Resource{
+		resources.NewResource("test1", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test1", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test2", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
+	GetResourceTestCase{"project1", "test", "test1", []string{"testZone1"}, []resources.Resource{
+		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
+	GetResourceTestCase{"project1", "test", "test1", []string{"testZone1", "testZone2"}, []resources.Resource{
+		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+		resources.NewResource("test2", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
+	GetResourceTestCase{"project1", "different", "", []string{"testZone1"}, []resources.Resource{
+		resources.NewResource("differentName", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
+	GetResourceTestCase{"project2", "test", "", []string{"testZone1"}, []resources.Resource{
+		resources.NewResource("testProject2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
+	}},
 }
 
 func TestGetResources(t *testing.T) {
@@ -141,8 +180,8 @@ func createTestGCEClient(server *httptest.Server) GCEClient {
 	return gceClient
 }
 
-func newInstance(name, zone, creationTimestamp string) Instance {
+func newInstance(name, creationTimestamp string) Instance {
 	return Instance{
-		name, zone, creationTimestamp,
+		name, creationTimestamp,
 	}
 }
