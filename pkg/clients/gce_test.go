@@ -127,12 +127,15 @@ func TestGetResources(t *testing.T) {
 	}
 }
 
+// A DeleteResourceTestCase is a struct for organizing test inputs and expected outputs
+// for testing client's the DeleteResource method.
 type DeleteResourceTestCase struct {
 	ProjectID string
 	Resource  resources.Resource
 	Expected  map[string]map[string][]Instance
 }
 
+// Test cases for DeleteResource.
 var testDeleteResourceCases = []DeleteResourceTestCase{
 	DeleteResourceTestCase{
 		"project1",
@@ -160,6 +163,7 @@ var testDeleteResourceCases = []DeleteResourceTestCase{
 	},
 }
 
+// TestDeleteResource tests the Compute Engine client's DeleteResource method.
 func TestDeleteResource(t *testing.T) {
 	server := createServer(deleteResourcesHandler)
 	defer server.Close()
@@ -181,6 +185,7 @@ type GetResourcesResponse struct {
 	Items []Instance
 }
 
+// Mock server's http handler for GetResources test
 func getResourcesHandler(w http.ResponseWriter, req *http.Request) {
 	// Endpoint of the form: /{ProjectID}/zones/{ZoneName}/instances
 	endpoint := req.URL.Path
@@ -198,6 +203,7 @@ type DeleteResourceResponse struct {
 	Text string
 }
 
+// Mock server's http handler for DeleteResource test
 func deleteResourcesHandler(w http.ResponseWriter, req *http.Request) {
 	// Endpoint of the form: /{ProjectID}/zones/{ZoneName}/instances/{InstanceName}
 	endpoint := req.URL.Path
@@ -224,10 +230,8 @@ func deleteResourcesHandler(w http.ResponseWriter, req *http.Request) {
 
 }
 
-// O(n^2) runtime to compare slices and O(n) additional space, optimize?
-
 // compareResourceLists compares the resources returned from a GetResources
-// call to what was expected. Note that
+// call to what was expected.
 func compareResourceLists(result, expected []resources.Resource) bool {
 	if len(result) != len(expected) {
 		return false
@@ -279,6 +283,7 @@ func newInstance(name, creationTimestamp string) Instance {
 	}
 }
 
+// Populate testInstances with lots of data for GetResources test
 func setupManyTestInstances() {
 	testInstances = map[string]map[string][]Instance{
 		"project1": {
@@ -302,6 +307,7 @@ func setupManyTestInstances() {
 	}
 }
 
+// Populate testInstances with small amount of data for DeleteResource test
 func setupFewTestInstances() {
 	testInstances = map[string]map[string][]Instance{
 		"project1": {
