@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package clients
 
 import (
@@ -11,6 +25,9 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 )
 
+// Auth authenticates the client to access Compute Engine resources. See
+// https://pkg.go.dev/google.golang.org/api/option?tab=doc for more
+// information about passing options.
 func (client *GCEClient) Auth(opts ...option.ClientOption) error {
 	ctx := context.Background()
 	authedClient, err := gce.NewService(ctx, opts...)
@@ -21,9 +38,8 @@ func (client *GCEClient) Auth(opts ...option.ClientOption) error {
 	return nil
 }
 
-// Can either get all resources and filter elsewhere, or filter in here (latter is more efficient)
-// GetResourcesWithFilter
-func (client *GCEClient) GetResources(projectID string, config reaperconfig.ResourceConfig) ([]resources.Resource, error) {
+// GetResources gets the Compute Engine instances that pass the filters defined in the ResourceConfig
+func (client *GCEClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error) {
 	var instances []resources.Resource
 	zones := config.GetZones()
 	for _, zone := range zones {
@@ -45,6 +61,7 @@ func (client *GCEClient) GetResources(projectID string, config reaperconfig.Reso
 	return instances, nil
 }
 
+// DeleteResource deletes the specificed Compute Engine instance.
 func (client *GCEClient) DeleteResource(projectID string, resource resources.Resource) error {
 	deleteInstanceCall := client.Client.Instances.Delete(projectID, resource.Zone, resource.Name)
 	_, err := deleteInstanceCall.Do()
