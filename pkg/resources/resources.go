@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
@@ -24,9 +25,30 @@ func (resource Resource) TimeAlive() float64 {
 }
 
 func FilterResources(resources []Resource, nameFilter, skipFilter string) []Resource {
-	return nil
+	var filteredResources []Resource
+	for _, resource := range resources {
+		if ShouldAddResourceToWatchlist(resource, nameFilter, skipFilter) {
+			filteredResources = append(filteredResources, resource)
+		}
+	}
+	return filteredResources
 }
 
+// Empty skip filter doesn't catch anything,and name filter must be set
 func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter string) bool {
-	return true
+	if len(nameFilter) == 0 {
+		return false
+	}
+	resourceName := resource.Name
+	if len(skipFilter) > 0 {
+		skipMatch, err := regexp.MatchString(skipFilter, resourceName)
+		if err != nil || skipMatch {
+			return false
+		}
+	}
+	nameMatch, err := regexp.MatchString(nameFilter, resourceName)
+	if err != nil {
+		return false
+	}
+	return nameMatch
 }
