@@ -25,7 +25,7 @@ import (
 // supported by the reaper will have its own client that implements the following
 // interface:
 //  - Auth authenticates the client. Passing options changes how authentication
-// 	  occurs. See https://pkg.go.dev/google.golang.org/api/option?tab=doc for
+//    occurs. See https://pkg.go.dev/google.golang.org/api/option?tab=doc for
 //    more details.
 //  - GetResources returns a list of Resources that are match the ResourceConfig.
 //  - DeleteResource deletes the specified resource.
