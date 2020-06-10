@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/robfig/cron/v3"
 )
 
 // A Resource represents a single GCP resource instance of any
@@ -40,6 +41,24 @@ func (resource Resource) TimeAlive() float64 {
 	timeAlive := time.Since(resource.TimeCreated)
 	numSeconds := timeAlive.Seconds()
 	return numSeconds
+}
+
+type WatchedResource struct {
+	Resource Resource
+	TTL      string
+}
+
+func NewWatchedResource(resource Resource, ttl string) WatchedResource {
+	return WatchedResource{resource, ttl}
+}
+
+func (resource WatchedResource) ReadyForDeletion() bool {
+	schedule, err := cron.ParseStandard(resource.TTL)
+	if err != nil {
+		return false
+	}
+	deletionTime := schedule.Next(resource.Resource.TimeCreated)
+	return time.Now().After(deletionTime)
 }
 
 // ShouldAddResourceToWatchlist determines whether a Resource should be watched

@@ -35,6 +35,10 @@ type Client interface {
 	DeleteResource(projectID string, resource resources.Resource) error
 }
 
+func GetClientForResource(reaperconfig.ResourceType) Client {
+	return nil
+}
+
 // Client for a Compute Engine Resource.
 type GCEClient struct {
 	Client *gce.Service

@@ -530,3 +530,10 @@ go_repository(
     sum = "h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=",
     version = "v0.0.0-20191204190536-9bdfabe68543",
 )
+
+go_repository(
+    name = "com_github_robfig_cron_v3",
+    importpath = "github.com/robfig/cron/v3",
+    sum = "h1:kQ6Cb7aHOHTSzNVNEhmp8EcWKLb4CbiMW9h9VyIhO4E=",
+    version = "v3.0.0",
+)
