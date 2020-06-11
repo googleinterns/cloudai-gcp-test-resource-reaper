@@ -15,6 +15,8 @@
 package clients
 
 import (
+	"context"
+
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
@@ -30,7 +32,7 @@ import (
 //  - GetResources returns a list of Resources that are match the ResourceConfig.
 //  - DeleteResource deletes the specified resource.
 type Client interface {
-	Auth(opts ...option.ClientOption) error
+	Auth(ctx context.Context, opts ...option.ClientOption) error
 	GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error)
 	DeleteResource(projectID string, resource resources.Resource) error
 }

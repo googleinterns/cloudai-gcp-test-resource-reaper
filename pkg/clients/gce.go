@@ -28,8 +28,7 @@ import (
 // Auth authenticates the client to access Compute Engine resources. See
 // https://pkg.go.dev/google.golang.org/api/option?tab=doc for more
 // information about passing options.
-func (client *GCEClient) Auth(opts ...option.ClientOption) error {
-	ctx := context.Background()
+func (client *GCEClient) Auth(ctx context.Context, opts ...option.ClientOption) error {
 	authedClient, err := gce.NewService(ctx, opts...)
 	if err != nil {
 		return err
