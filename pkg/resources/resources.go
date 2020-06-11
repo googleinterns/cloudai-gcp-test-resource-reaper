@@ -44,20 +44,22 @@ func (resource Resource) TimeAlive() float64 {
 }
 
 type WatchedResource struct {
-	Resource Resource
-	TTL      string
+	Resource
+	TTL string
 }
 
 func NewWatchedResource(resource Resource, ttl string) WatchedResource {
 	return WatchedResource{resource, ttl}
 }
 
-func (resource WatchedResource) ReadyForDeletion() bool {
+func (resource WatchedResource) IsReadyForDeletion() bool {
+	// Using Cron time format doesn't give a duration, but instead a format of what the time should
+	// look like when deleting
 	schedule, err := cron.ParseStandard(resource.TTL)
 	if err != nil {
 		return false
 	}
-	deletionTime := schedule.Next(resource.Resource.TimeCreated)
+	deletionTime := schedule.Next(resource.TimeCreated)
 	return time.Now().After(deletionTime)
 }
 
@@ -83,4 +85,14 @@ func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter stri
 		return false
 	}
 	return nameMatch
+}
+
+func CreateWatchlist(resources []Resource, ttl string) []WatchedResource {
+	// watchlist := make([]WatchedResource, len(resources))
+	var watchlist []WatchedResource
+	for _, resource := range resources {
+		watchedResource := NewWatchedResource(resource, ttl)
+		watchlist = append(watchlist, watchedResource)
+	}
+	return watchlist
 }

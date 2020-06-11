@@ -15,6 +15,8 @@
 package clients
 
 import (
+	"errors"
+
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	gce "google.golang.org/api/compute/v1"
@@ -35,8 +37,13 @@ type Client interface {
 	DeleteResource(projectID string, resource resources.Resource) error
 }
 
-func GetClientForResource(reaperconfig.ResourceType) Client {
-	return nil
+func GetClientForResource(resourceType reaperconfig.ResourceType) (Client, error) {
+	switch resourceType {
+	case reaperconfig.ResourceType_GCE_VM:
+		return &GCEClient{}, nil
+	default:
+		return nil, errors.New("Unsupported Resource Type")
+	}
 }
 
 // Client for a Compute Engine Resource.
