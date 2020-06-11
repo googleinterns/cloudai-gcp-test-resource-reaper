@@ -72,12 +72,12 @@ var testShouldWatchCases = []ShouldWatchTestCase{
 }
 
 func TestShouldAddResourceToWatchlist(t *testing.T) {
-	for i, testCase := range testShouldWatchCases {
+	for _, testCase := range testShouldWatchCases {
 		result := ShouldAddResourceToWatchlist(
 			testCase.TestResource, testCase.NameFilter, testCase.SkipFilter,
 		)
 		if result != testCase.Expected {
-			t.Errorf("Expected %t, got %t", testCase.Expected, result, i)
+			t.Errorf("Expected %t, got %t", testCase.Expected, result)
 		}
 	}
 }
