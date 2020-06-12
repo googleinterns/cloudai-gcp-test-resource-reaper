@@ -21,13 +21,6 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 )
 
-type ShouldWatchTestCase struct {
-	TestResource Resource
-	NameFilter   string
-	SkipFilter   string
-	Expected     bool
-}
-
 // Variables whose values are not important for testing purposes
 var (
 	zone              = "testZone"
@@ -35,6 +28,13 @@ var (
 	timeCreated, _    = time.Parse(time.RFC3339, timeCreatedString)
 	resourceType      = reaperconfig.ResourceType_GCE_VM
 )
+
+type ShouldWatchTestCase struct {
+	TestResource Resource
+	NameFilter   string
+	SkipFilter   string
+	Expected     bool
+}
 
 var testShouldWatchCases = []ShouldWatchTestCase{
 	ShouldWatchTestCase{
@@ -71,6 +71,7 @@ var testShouldWatchCases = []ShouldWatchTestCase{
 	},
 }
 
+// TestShouldAddResourceToWatchlist tests the ShouldAddResourceToWatchlist funcion.
 func TestShouldAddResourceToWatchlist(t *testing.T) {
 	for _, testCase := range testShouldWatchCases {
 		result := ShouldAddResourceToWatchlist(
