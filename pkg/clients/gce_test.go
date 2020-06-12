@@ -15,6 +15,7 @@
 package clients
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -42,6 +43,8 @@ var (
 	timeCreatedString = "2019-10-12T07:20:50.52Z"
 	timeCreated, _    = time.Parse(time.RFC3339, timeCreatedString)
 
+	testContext = context.Background()
+
 	// Map of project -> Zones in project -> Instances in Zone. This
 	// mocks the data that would be stored in GCP. Call setupTestInstances
 	// to populate with data.
@@ -51,7 +54,7 @@ var (
 // TestAuth tests the authentication method of the Compute Engine Client.
 func TestAuth(t *testing.T) {
 	client := GCEClient{}
-	client.Auth()
+	client.Auth(testContext)
 
 	computeAPIBaseURL := "https://compute.googleapis.com/compute/v1/projects/"
 	if basePath := client.Client.BasePath; basePath != computeAPIBaseURL {
@@ -272,7 +275,7 @@ func createTestGCEClient(server *httptest.Server) GCEClient {
 	}
 
 	gceTestClient := GCEClient{}
-	gceTestClient.Auth(testOptions...)
+	gceTestClient.Auth(testContext, testOptions...)
 	return gceTestClient
 }
 
