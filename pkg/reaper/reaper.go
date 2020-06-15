@@ -1,6 +1,7 @@
 package reaper
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -23,100 +24,83 @@ type Reaper struct {
 	// watched map[string]map[string]*resources.WatchedResource
 }
 
-type reaperStatus struct {
-	AddedResources      []*resources.Resource
-	DeletedResources    []*resources.Resource
-	Failed              []error
-	UnmodifiedResources []*resources.Resource
-	UpdatedSchedule     bool
-}
-
-type reaperFailure struct {
-	Resource *resources.Resource
-	Error    error
-}
-
-func NewReaper(config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) (Reaper, reaperStatus) {
+func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) Reaper {
 	reaper := Reaper{}
-	status := reaper.UpdateWatchedResources(config, clientOptions...)
-	return reaper, status
+	reaper.UpdateReaperConfig(ctx, config, clientOptions...)
+	return reaper
 }
 
-func (reaper Reaper) RunThroughResources(clientOptions ...option.ClientOption) reaperStatus {
-	status := reaperStatus{}
-
+func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	for _, watchedResource := range reaper.Watchlist {
 		if watchedResource.IsReadyForDeletion() {
-			resourceClient, err := clients.GetClientForResource(watchedResource.Type)
+			resourceClient, err := getAuthedClient(ctx, reaper, watchedResource.Type, clientOptions...)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				continue
 			}
-			resourceClient.Auth(clientOptions...)
-			err = resourceClient.DeleteResource(reaper.ProjectID, watchedResource.Resource)
-			if err != nil {
-				log.Fatal(err)
+
+			if err := resourceClient.DeleteResource(reaper.ProjectID, watchedResource.Resource); err != nil {
+				deleteError := fmt.Errorf(
+					"%s client failed to delete resource %s with the following error: %s",
+					watchedResource.Type.String(), watchedResource.Name, err.Error(),
+				)
+				log.Println(deleteError)
+				continue
 			}
 		}
 	}
-	return status
 }
 
-func (reaper *Reaper) UpdateWatchedResources(config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) reaperStatus {
-	status := reaperStatus{}
+func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []resources.WatchedResource
 
 	resourceConfigs := config.GetResources()
 	for _, resourceConfig := range resourceConfigs {
 		resourceType := resourceConfig.GetResourceType()
-		resourceClient, err := clients.GetClientForResource(resourceType)
-		if err != nil {
-			detailedErr := fmt.Errorf("%s client failed with the following error: %s", resourceType.String(), err.Error())
-			status.logReaperFailure(detailedErr)
-			continue
-		}
 
-		err = resourceClient.Auth(clientOptions...)
+		resourceClient, err := getAuthedClient(ctx, reaper, resourceType, clientOptions...)
 		if err != nil {
-			detailedErr := fmt.Errorf("%s client failed authenticate with the following error: %s", resourceType.String(), err.Error())
-			status.logReaperFailure(detailedErr)
+			log.Println(err)
 			continue
 		}
 
 		filteredResources, err := resourceClient.GetResources(reaper.ProjectID, resourceConfig)
 		if err != nil {
-			detailedErr := fmt.Errorf("%s client failed to get resources with the following error: %s", resourceType.String(), err.Error())
-			status.logReaperFailure(detailedErr)
+			getResourcesError := fmt.Errorf(
+				"%s client failed to get resources with the following error: %s",
+				resourceType.String(), err.Error(),
+			)
+			log.Println(getResourcesError)
 			continue
 		}
 		watchedResources := resources.CreateWatchlist(filteredResources, resourceConfig.GetTtl())
 		newWatchlist = append(newWatchlist, watchedResources...)
-		status.logAddedResources(filteredResources)
 	}
 	reaper.Watchlist = newWatchlist
 
 	if strings.Compare(config.GetSchedule(), reaper.Schedule) != 0 {
 		reaper.Schedule = config.GetSchedule()
-		status.UpdatedSchedule = true
-	}
-	return status
-}
-
-func (status *reaperStatus) logAddedResources(addedResources []resources.Resource) {
-	for _, resource := range addedResources {
-		status.AddedResources = append(status.AddedResources, &resource)
 	}
 }
 
-func (status *reaperStatus) logDeletedResources(resource *resources.Resource) {
-	status.DeletedResources = append(status.DeletedResources, resource)
-}
-
-func (status *reaperStatus) logReaperFailure(err error) {
-	status.Failed = append(status.Failed, err)
-}
-
-func (status *reaperStatus) logUnmodifiedResources(unmodifiedResources []resources.Resource) {
-	for _, resource := range unmodifiedResources {
-		status.UnmodifiedResources = append(status.UnmodifiedResources, &resource)
+func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reaperconfig.ResourceType, clientOptions ...option.ClientOption) (clients.Client, error) {
+	resourceClient, err := clients.NewClient(resourceType)
+	if err != nil {
+		clientError := fmt.Errorf(
+			"%s client failed with the following error: %s",
+			resourceType.String(), err.Error(),
+		)
+		return nil, clientError
 	}
+
+	err = resourceClient.Auth(ctx, clientOptions...)
+	if err != nil {
+		authError := fmt.Errorf(
+			"%s client failed authenticate with the following error: %s",
+			resourceType.String(), err.Error(),
+		)
+		return nil, authError
+	}
+
+	return resourceClient, nil
 }

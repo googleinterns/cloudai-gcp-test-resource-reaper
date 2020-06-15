@@ -15,8 +15,8 @@
 package clients
 
 import (
-	"errors"
 	"context"
+	"errors"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
@@ -38,7 +38,9 @@ type Client interface {
 	DeleteResource(projectID string, resource resources.Resource) error
 }
 
-func GetClientForResource(resourceType reaperconfig.ResourceType) (Client, error) {
+// NewClient is the factory method that returns the correct implementation of the GCP
+// client based on the resource type.
+func NewClient(resourceType reaperconfig.ResourceType) (Client, error) {
 	switch resourceType {
 	case reaperconfig.ResourceType_GCE_VM:
 		return &GCEClient{}, nil
