@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["resources.go"],
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources",
+    visibility = ["//visibility:public"],
+    deps = ["//proto:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["resources_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//proto:go_default_library"],
+)
