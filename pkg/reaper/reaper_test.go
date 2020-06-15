@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
-	"google.golang.org/api/option"
 	"google.golang.org/api/internal"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -33,19 +34,18 @@ type UpdateReaperTestCase struct {
 }
 
 var updateReaperTestCases = []UpdateReaperTestCase{
-	UpdateReaperTestCase{},
+	UpdateReaperTestCase{&reaperconfig.ReaperConfig{}, Reaper{}},
 }
 
 func TestUpdateReaperConfig(t *testing.T) {
 	server := createServer()
 	defer server.Close()
 
-	// testClient := getTestClient(server)
-	clientOptions := getTestClientOptions(server)
+	testClientOption := getTestClientOption(server)
 	testReaper := reaper.Reaper{}
 
 	for _, testCase := range updateReaperTestCases {
-		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, clientOptions...)
+		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOption)
 		if !reflect.DeepEqual(testReaper, testCase.Expected) {
 			t.Errorf("Reaper not updated correctly")
 		}
@@ -69,36 +69,35 @@ func getResourcesHandler(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(req.URL)
 }
 
-// func newTestClient(server *httptest.Server) *TestClient {
-// 	return &TestClient{server.Client()}
-// }
-
-func getTestClientOptions(server *httptest.Server) []option.ClientOption {
-	return []option.ClientOption{
-		option.WithHTTPClient(server.Client()),
-		option.WithEndpoint(server.URL),
-	}
+func getTestClientOption(server *httptest.Server) option.ClientOption {
+	return TestClient{server.Client(), server.URL}
 }
 
-// type TestClient struct {
-// 	*http.Client
-// }
+type TestClient struct {
+	Client   *http.Client
+	Endpoint string
+}
 
-// Implementing these makes http.client implement Client interface
-// func (client *http.Client) Auth(ctx context.Context, opts ...option.ClientOption) error {
-// 	fmt.Println("IMPLEMENTED AUTH")
-// 	return nil
-// }
+// Implementing the option.ClientOption interface
+func (client TestClient) Apply(o *internal.DialSettings) {
+	o.HTTPClient = client.Client
+	o.Endpoint = client.Endpoint
+}
 
-// func (client *http.Client) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error) {
-// 	fmt.Println("IMPLEMENTED GET")
-// 	return nil, nil
-// }
+func (client *TestClient) Auth(ctx context.Context, opts ...option.ClientOption) error {
+	fmt.Println("IMPLEMENTED AUTH")
+	return nil
+}
 
-// func (client *http.Client) DeleteResource(projectID string, resource resources.Resource) error {
-// 	fmt.Println("IMPLEMENTED DELETE")
-// 	return nil
-// }
+func (client *TestClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error) {
+	fmt.Println("IMPLEMENTED GET")
+	return nil, nil
+}
+
+func (client *TestClient) DeleteResource(projectID string, resource resources.Resource) error {
+	fmt.Println("IMPLEMENTED DELETE")
+	return nil
+}
 
 type TestData struct {
 	Name              string
@@ -118,5 +117,25 @@ func setupTestData() {
 			},
 		},
 		"project2": {},
+	}
+}
+
+func createReaperConfig(projectID, skipFilter string, resources ...resourceconfig.ResourceConfig) *reaperconfig.ReaperConfig {
+	return &reaperconfig.Reaperconfig{
+		Resources:  resources,
+		Schedule:   "TestSchedule",
+		SkipFilter: skipFilter,
+		ProjectId:  projectID,
+		Uuid:       "TestUUID",
+	}
+}
+
+func createResourceConfig(resourceType reaperconfig.ResourceType, nameFilter, skipFilter, ttl string, zones ...string) *reaperconfig.ResourceConfig {
+	return &reaperconfig.ResourceConfig{
+		ResourceType: resourceType,
+		NameFilter:   nameFilter,
+		SkipFilter:   skipFilter,
+		Zones:        zones,
+		ttl:          ttl,
 	}
 }
