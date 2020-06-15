@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
@@ -24,8 +23,8 @@ type Reaper struct {
 	// watched map[string]map[string]*resources.WatchedResource
 }
 
-func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) Reaper {
-	reaper := Reaper{}
+func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) *Reaper {
+	reaper := &Reaper{}
 	reaper.UpdateReaperConfig(ctx, config, clientOptions...)
 	return reaper
 }
@@ -77,8 +76,7 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 		newWatchlist = append(newWatchlist, watchedResources...)
 	}
 	reaper.Watchlist = newWatchlist
-
-	if strings.Compare(config.GetSchedule(), reaper.Schedule) != 0 {
+	if len(config.GetSchedule()) > 0 {
 		reaper.Schedule = config.GetSchedule()
 	}
 }
