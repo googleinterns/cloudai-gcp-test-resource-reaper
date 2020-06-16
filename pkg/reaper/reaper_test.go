@@ -13,8 +13,6 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
-
-	// "google.golang.org/api/internal"
 	"google.golang.org/api/option"
 )
 
@@ -53,6 +51,55 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
+	UpdateReaperTestCase{
+		createReaperConfig(
+			"project2", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
+		),
+		createTestReaper("project2", resources.CreateWatchlist(
+			[]resources.Resource{
+				resources.NewResource("TestName", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+			},
+			"* * * * *",
+		)...),
+	},
+	UpdateReaperTestCase{
+		createReaperConfig(
+			"project2", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
+		),
+		createTestReaper("project2", resources.CreateWatchlist(
+			[]resources.Resource{
+				resources.NewResource("TestName", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+				resources.NewResource("TestingYetAnotherOne", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+				resources.NewResource("TestThis", "testZone2", earlyTime, reaperconfig.ResourceType_GCE_VM),
+			},
+			"* * * * *",
+		)...),
+	},
+	UpdateReaperTestCase{
+		createReaperConfig(
+			"project2", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
+		),
+		createTestReaper("project2", resources.CreateWatchlist(
+			[]resources.Resource{
+				resources.NewResource("TestName", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+				resources.NewResource("TestThis", "testZone2", earlyTime, reaperconfig.ResourceType_GCE_VM),
+			},
+			"* * * * *",
+		)...),
+	},
+	UpdateReaperTestCase{
+		createReaperConfig(
+			"project2", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
+		),
+		createTestReaper("project2", resources.CreateWatchlist(
+			[]resources.Resource{
+				resources.NewResource("AnotherName", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+				resources.NewResource("TestingYetAnotherOne", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM),
+				resources.NewResource("IsThisAnotherName", "testZone2", earlyTime, reaperconfig.ResourceType_GCE_VM),
+			},
+			"* * * * *",
+		)...),
+	},
 }
 
 func TestUpdateReaperConfig(t *testing.T) {
@@ -64,8 +111,10 @@ func TestUpdateReaperConfig(t *testing.T) {
 
 	for _, testCase := range updateReaperTestCases {
 		setupTestData()
+		fmt.Println("TEST")
 		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOption...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
+			fmt.Println("FAIL")
 			t.Errorf("Reaper not updated correctly")
 		}
 	}
