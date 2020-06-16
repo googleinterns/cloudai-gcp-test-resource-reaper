@@ -29,8 +29,39 @@ var (
 	testData map[string]map[reaperconfig.ResourceType]map[string][]TestData
 )
 
+type ReaperRunTestCase struct {
+	Watchlist []resources.WatchedResource
+	Expected  reaper.Reaper
+}
+
+var reaperRunTestCases = []ReaperRunTestCase{
+	ReaperRunTestCase{
+		[]resources.WatchedResource{
+			resources.NewWatchedResource(resources.NewResource("Name", "Zone", earlyTime, reaperconfig.ResourceType_GCE_VM), "* * * * *"),
+		},
+		createTestReaper("project1", resources.CreateWatchlist(
+			[]resources.Resource{
+				resources.NewResource("Name", "Zone", earlyTime, reaperconfig.ResourceType_GCE_VM),
+			},
+			"* * * * *",
+		)...),
+	},
+}
+
 func TestRunThroughResources(t *testing.T) {
-	fmt.Println(time.Now().String())
+	server := createServer(deleteComputeEngineResourceHandler)
+	defer server.Close()
+
+	testClientOptions := getTestClientOptions(server)
+
+	for _, testCase := range reaperRunTestCases {
+		testReaper := createTestReaper("project1", testCase.Watchlist...)
+		testReaper.RunThroughResources(testContext, testClientOptions...)
+		if !areWatchlistsEqual(testReaper, testCase.Expected) {
+			fmt.Println("FAIL")
+			t.Errorf("Reaper not updated correctly")
+		}
+	}
 }
 
 type UpdateReaperTestCase struct {
@@ -103,34 +134,34 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 }
 
 func TestUpdateReaperConfig(t *testing.T) {
-	server := createServer()
+	server := createServer(getComputeEngineResourcesHandler)
 	defer server.Close()
 
-	testClientOption := getTestClientOptions(server)
+	testClientOptions := getTestClientOptions(server)
 	testReaper := reaper.Reaper{}
 
 	for _, testCase := range updateReaperTestCases {
 		setupTestData()
-		fmt.Println("TEST")
-		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOption...)
+		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
-			fmt.Println("FAIL")
 			t.Errorf("Reaper not updated correctly")
 		}
 	}
 }
 
-func createServer() *httptest.Server {
-	mux := http.NewServeMux()
-	// mux.Handle("/delete", http.HandlerFunc(deleteResourceHandler))
-	// mux.Handle("/zones   /zone/instances", http.HandlerFunc(getResourcesHandler))
-	mux.Handle("/", http.HandlerFunc(getComputeEngineResourcesHandler))
-	server := httptest.NewServer(mux)
-	return server
+func createServer(handler http.HandlerFunc) *httptest.Server {
+	// Use ServeMux if need to handle different endpoints
+	// 	mux := http.NewServeMux()
+	// 	mux.Handle("/", http.HandlerFunc(deleteResourceHandler))
+	// 	// mux.Handle("/zones   /zone/instances", http.HandlerFunc(getResourcesHandler))
+	// 	// mux.Handle("/", http.HandlerFunc(getComputeEngineResourcesHandler))
+	// 	server := httptest.NewServer(mux)
+	// 	return server
+	return httptest.NewServer(http.HandlerFunc(handler))
 }
 
-func deleteResourceHandler(w http.ResponseWriter, req *http.Request) {
-
+func deleteComputeEngineResourceHandler(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(req.URL.Path)
 }
 
 type GetResourcesResponse struct {
@@ -148,7 +179,6 @@ func getComputeEngineResourcesHandler(w http.ResponseWriter, req *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(res)
-
 }
 
 // Only checking if names are equal since test is setup to have unique names
