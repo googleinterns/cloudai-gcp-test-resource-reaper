@@ -11,6 +11,8 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Log to stack driver
+
 // Optimization: Use DLL for watchlist, and have map value be pointer to element. O(1) deletion and search
 type Reaper struct {
 	UUID      string
@@ -53,6 +55,16 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []resources.WatchedResource
 
+	if len(config.GetProjectId()) > 0 {
+		reaper.ProjectID = config.GetProjectId()
+	}
+	if len(config.GetUuid()) > 0 {
+		reaper.UUID = config.GetUuid()
+	}
+	if len(config.GetSchedule()) > 0 {
+		reaper.Schedule = config.GetSchedule()
+	}
+
 	resourceConfigs := config.GetResources()
 	for _, resourceConfig := range resourceConfigs {
 		resourceType := resourceConfig.GetResourceType()
@@ -76,9 +88,6 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 		newWatchlist = append(newWatchlist, watchedResources...)
 	}
 	reaper.Watchlist = newWatchlist
-	if len(config.GetSchedule()) > 0 {
-		reaper.Schedule = config.GetSchedule()
-	}
 }
 
 func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reaperconfig.ResourceType, clientOptions ...option.ClientOption) (clients.Client, error) {
