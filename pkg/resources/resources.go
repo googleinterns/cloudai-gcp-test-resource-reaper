@@ -92,6 +92,8 @@ func (resource WatchedResource) IsReadyForDeletion() bool {
 }
 
 // ShouldAddResourceToWatchlist determines whether a Resource should be watched
+// by checking if its name matches the skip filter or name filter regex from the
+// ResourceConfig and ReaperConfig. If a resource matches both the skip filter
 // and name filter, then the skip filter wins and the resource will NOT be watched.
 // An empty string for the skip filter will be interpreted as unset, and therefore
 // will not match any resources.
