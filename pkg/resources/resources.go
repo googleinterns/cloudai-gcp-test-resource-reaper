@@ -43,13 +43,32 @@ func (resource Resource) TimeAlive() float64 {
 	return numSeconds
 }
 
+type Clock struct {
+	instant time.Time
+}
+
+func (c *Clock) Now() time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	return c.instant
+}
+
 type WatchedResource struct {
 	Resource
-	TTL string
+	TTL   string
+	clock *Clock
 }
 
 func NewWatchedResource(resource Resource, ttl string) WatchedResource {
-	return WatchedResource{resource, ttl}
+	return WatchedResource{Resource: resource, TTL: ttl}
+}
+
+func (resource *WatchedResource) FreezeClock(instant time.Time) {
+	if resource.clock == nil {
+		resource.clock = &Clock{}
+	}
+	resource.clock.instant = instant
 }
 
 func (resource WatchedResource) IsReadyForDeletion() bool {
@@ -60,7 +79,7 @@ func (resource WatchedResource) IsReadyForDeletion() bool {
 		return false
 	}
 	deletionTime := schedule.Next(resource.TimeCreated)
-	return time.Now().After(deletionTime)
+	return resource.clock.Now().After(deletionTime)
 }
 
 // ShouldAddResourceToWatchlist determines whether a Resource should be watched

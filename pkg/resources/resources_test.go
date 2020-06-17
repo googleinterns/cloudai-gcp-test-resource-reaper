@@ -23,12 +23,14 @@ import (
 
 // Variables whose values are not important for testing purposes
 var (
-	zone         = "testZone"
-	earlyTime    = time.Now().AddDate(-10, 0, 0)
-	lateTime     = time.Now().AddDate(10, 0, 0)
-	minuteAgo    = time.Now().Add(-1 * time.Minute)
-	minuteLater  = time.Now().Add(time.Minute)
-	resourceType = reaperconfig.ResourceType_GCE_VM
+	zone           = "testZone"
+	currentTime, _ = time.Parse("2006-01-02 15:04:05 -0700", "2020-06-17 10:00:00 -0400")
+
+	earlyTime       = currentTime.AddDate(-10, 0, 0)
+	lateTime        = currentTime.AddDate(10, 0, 0)
+	twoMinutesAgo   = currentTime.Add(-2 * time.Minute)
+	twoMinutesLater = currentTime.Add(2 * time.Minute)
+	resourceType    = reaperconfig.ResourceType_GCE_VM
 )
 
 type ShouldWatchTestCase struct {
@@ -40,35 +42,35 @@ type ShouldWatchTestCase struct {
 
 var testShouldWatchCases = []ShouldWatchTestCase{
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"test", "", true,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"test", "test", false,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"another|test", "", true,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"another|test", "test", false,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"another", "", false,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"another", "test", false,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"", "test", false,
 	},
 	ShouldWatchTestCase{
-		NewResource("testName", zone, time.Now(), resourceType),
+		NewResource("testName", zone, currentTime, resourceType),
 		"", "", false,
 	},
 }
@@ -93,12 +95,12 @@ type ReadyForDeletionTestCase struct {
 var readyForDeletionTestCases = []ReadyForDeletionTestCase{
 	ReadyForDeletionTestCase{createTestWatchedResource(earlyTime, "* * * * *"), true},
 	ReadyForDeletionTestCase{createTestWatchedResource(earlyTime, "20 * 3 10 *"), true},
-	ReadyForDeletionTestCase{createTestWatchedResource(minuteAgo, "* * * * *"), true},
-	ReadyForDeletionTestCase{createTestWatchedResource(minuteAgo, "2 * * * *"), false},
-	ReadyForDeletionTestCase{createTestWatchedResource(minuteLater, "* * * * *"), false},
-	ReadyForDeletionTestCase{createTestWatchedResource(minuteLater, "10 * * * *"), false},
+	ReadyForDeletionTestCase{createTestWatchedResource(twoMinutesAgo, "2 * * * *"), false},
+	ReadyForDeletionTestCase{createTestWatchedResource(twoMinutesAgo, "59 * * * *"), true},
+	ReadyForDeletionTestCase{createTestWatchedResource(twoMinutesLater, "* * * * *"), false},
+	ReadyForDeletionTestCase{createTestWatchedResource(twoMinutesLater, "10 * * * *"), false},
 	ReadyForDeletionTestCase{createTestWatchedResource(lateTime, "* * * * *"), false},
-	ReadyForDeletionTestCase{createTestWatchedResource(lateTime, "* 5 * * 7"), false},
+	ReadyForDeletionTestCase{createTestWatchedResource(lateTime, "1 5 * * *"), false},
 }
 
 func TestIsReadyForDeletion(t *testing.T) {
@@ -111,8 +113,10 @@ func TestIsReadyForDeletion(t *testing.T) {
 }
 
 func createTestWatchedResource(creationTime time.Time, ttl string) WatchedResource {
-	return WatchedResource{
+	resource := NewWatchedResource(
 		NewResource("TestResource", zone, creationTime, resourceType),
 		ttl,
-	}
+	)
+	resource.FreezeClock(currentTime)
+	return resource
 }
