@@ -12,18 +12,11 @@ import (
 	"google.golang.org/api/option"
 )
 
-// Log to stack driver
-
-// Optimization: Use DLL for watchlist, and have map value be pointer to element. O(1) deletion and search
 type Reaper struct {
 	UUID      string
 	ProjectID string
 	Watchlist []resources.WatchedResource
 	Schedule  string
-
-	// Helped structure for quickly determining if a resource is being watched.
-	// { Zone : { Resource Name : Pointer to WatchedResource }}
-	// watched map[string]map[string]*resources.WatchedResource
 }
 
 func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) *Reaper {

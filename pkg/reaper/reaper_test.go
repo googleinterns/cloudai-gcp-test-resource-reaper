@@ -14,7 +14,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-// Use 2/3 types of resources and their clients for testing
 var (
 	testContext    = context.Background()
 	currentTime, _ = time.Parse("2006-01-02 15:04:05 -0700", "2020-06-17 10:00:00 -0400")
