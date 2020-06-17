@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
@@ -32,6 +33,8 @@ func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOpt
 }
 
 func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
+	var updatedWatchlist []resources.WatchedResource
+
 	for _, watchedResource := range reaper.Watchlist {
 		if watchedResource.IsReadyForDeletion() {
 			resourceClient, err := getAuthedClient(ctx, reaper, watchedResource.Type, clientOptions...)
@@ -48,8 +51,11 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 				log.Println(deleteError)
 				continue
 			}
+		} else {
+			updatedWatchlist = append(updatedWatchlist, watchedResource)
 		}
 	}
+	reaper.Watchlist = updatedWatchlist
 }
 
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
@@ -110,4 +116,10 @@ func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reapercon
 	}
 
 	return resourceClient, nil
+}
+
+func (reaper *Reaper) freezeTime(instant time.Time) {
+	for idx := range reaper.Watchlist {
+		reaper.Watchlist[idx].FreezeClock(instant)
+	}
 }
