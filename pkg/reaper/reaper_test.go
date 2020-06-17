@@ -35,12 +35,29 @@ type ReaperRunTestCase struct {
 var reaperRunTestCases = []ReaperRunTestCase{
 	ReaperRunTestCase{
 		[]resources.WatchedResource{
-			resources.NewWatchedResource(resources.NewResource("TestEarly", "testZone1", earlyTime, reaperconfig.ResourceType_GCE_VM), "* 5 * * *"),
-			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone1", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
-			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone2", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "59 * * * *"),
+			resources.NewWatchedResource(resources.NewResource("TestEarly", "testZone", earlyTime, reaperconfig.ResourceType_GCE_VM), "* 5 * * *"),
+			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "59 * * * *"),
 		},
 		createTestReaper("testProject", []resources.WatchedResource{
-			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone1", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
+			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
+		}...),
+	},
+	ReaperRunTestCase{
+		[]resources.WatchedResource{
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
+		},
+		createTestReaper("testProject", []resources.WatchedResource{
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
+		}...),
+	},
+	ReaperRunTestCase{
+		[]resources.WatchedResource{
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_1", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "59 * * * *"),
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_2", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "30 * * * *"),
+		},
+		createTestReaper("testProject", []resources.WatchedResource{
+			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_2", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "30 * * * *"),
 		}...),
 	},
 }
