@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package reaper
 
 import (
@@ -12,6 +26,8 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Reaper represents the resource reaper for a single GCP project. The reaper will
+// run on a given schedule defined in cron time format.
 type Reaper struct {
 	UUID      string
 	ProjectID string
@@ -19,12 +35,16 @@ type Reaper struct {
 	Schedule  string
 }
 
+// NewReaper constructs a new reaper.
 func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) *Reaper {
 	reaper := &Reaper{}
 	reaper.UpdateReaperConfig(ctx, config, clientOptions...)
 	return reaper
 }
 
+// RunThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
+// determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
+// Watchlist is updated accordingly.
 func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var updatedWatchlist []resources.WatchedResource
 
@@ -51,6 +71,7 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 	reaper.Watchlist = updatedWatchlist
 }
 
+// UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []resources.WatchedResource
 
@@ -89,6 +110,7 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 	reaper.Watchlist = newWatchlist
 }
 
+// getAuthedClient is a helper method for getting an authenticated GCP client for a given resource type.
 func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reaperconfig.ResourceType, clientOptions ...option.ClientOption) (clients.Client, error) {
 	resourceClient, err := clients.NewClient(resourceType)
 	if err != nil {
@@ -111,6 +133,8 @@ func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reapercon
 	return resourceClient, nil
 }
 
+// freezeTime is a helper method for freezing the clocks of all resources in a reaper's
+// Watchlist to a given instant.
 func (reaper *Reaper) freezeTime(instant time.Time) {
 	for idx := range reaper.Watchlist {
 		reaper.Watchlist[idx].FreezeClock(instant)

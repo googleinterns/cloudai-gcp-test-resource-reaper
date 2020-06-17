@@ -43,9 +43,13 @@ func (resource Resource) TimeAlive() float64 {
 	return numSeconds
 }
 
+// Clock is a mock struct for handling time dependency for tests.
 type Clock struct {
 	instant time.Time
+}
 
+// Now returns the either time frozen time that was set for testing
+// purposes, or the current time.
 func (c *Clock) Now() time.Time {
 	if c == nil {
 		return time.Now()
@@ -53,16 +57,20 @@ func (c *Clock) Now() time.Time {
 	return c.instant
 }
 
+// WatchedResource represents a resource that the Reaper is monitoring.
 type WatchedResource struct {
 	Resource
 	TTL   string
 	clock *Clock
 }
 
+// NewWatchedResource constructs a WatchedResource.
 func NewWatchedResource(resource Resource, ttl string) WatchedResource {
 	return WatchedResource{Resource: resource, TTL: ttl}
 }
 
+// FreezeClock sets the clock's current time to instant. This is to be
+// used during testing.
 func (resource *WatchedResource) FreezeClock(instant time.Time) {
 	if resource.clock == nil {
 		resource.clock = &Clock{}
@@ -70,6 +78,8 @@ func (resource *WatchedResource) FreezeClock(instant time.Time) {
 	resource.clock.instant = instant
 }
 
+// IsReadyForDeletion returns if a WatchedResource is past its time to live (TTL)
+// based of the current time of the Clock.
 func (resource WatchedResource) IsReadyForDeletion() bool {
 	// Using Cron time format doesn't give a duration, but instead a format of what the time should
 	// look like when deleting
@@ -103,6 +113,8 @@ func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter stri
 	return nameMatch
 }
 
+// CreateWatchlist creates a list of WatchedResources with a given time to
+// live (TTL).
 func CreateWatchlist(resources []Resource, ttl string) []WatchedResource {
 	// watchlist := make([]WatchedResource, len(resources))
 	var watchlist []WatchedResource
