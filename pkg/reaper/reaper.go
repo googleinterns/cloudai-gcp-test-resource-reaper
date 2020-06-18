@@ -31,7 +31,7 @@ import (
 type Reaper struct {
 	UUID      string
 	ProjectID string
-	Watchlist []resources.WatchedResource
+	Watchlist []*resources.WatchedResource
 	Schedule  string
 }
 
@@ -46,7 +46,7 @@ func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOpt
 // determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
 // Watchlist is updated accordingly.
 func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
-	var updatedWatchlist []resources.WatchedResource
+	var updatedWatchlist []*resources.WatchedResource
 
 	for _, watchedResource := range reaper.Watchlist {
 		if watchedResource.IsReadyForDeletion() {
@@ -73,7 +73,7 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
-	var newWatchlist []resources.WatchedResource
+	var newWatchlist []*resources.WatchedResource
 
 	if len(config.GetProjectId()) > 0 {
 		reaper.ProjectID = config.GetProjectId()

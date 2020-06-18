@@ -34,7 +34,7 @@ var (
 )
 
 type ShouldWatchTestCase struct {
-	TestResource Resource
+	TestResource *Resource
 	NameFilter   string
 	SkipFilter   string
 	Expected     bool
@@ -88,7 +88,7 @@ func TestShouldAddResourceToWatchlist(t *testing.T) {
 }
 
 type ReadyForDeletionTestCase struct {
-	TestResource WatchedResource
+	TestResource *WatchedResource
 	Expected     bool
 }
 
@@ -112,7 +112,7 @@ func TestIsReadyForDeletion(t *testing.T) {
 	}
 }
 
-func createTestWatchedResource(creationTime time.Time, ttl string) WatchedResource {
+func createTestWatchedResource(creationTime time.Time, ttl string) *WatchedResource {
 	resource := NewWatchedResource(
 		NewResource("TestResource", zone, creationTime, resourceType),
 		ttl,

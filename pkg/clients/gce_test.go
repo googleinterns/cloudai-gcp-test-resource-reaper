@@ -69,36 +69,36 @@ type GetResourcesTestCase struct {
 	NameFilter string
 	SkipFilter string
 	Zones      []string
-	Expected   []resources.Resource
+	Expected   []*resources.Resource
 }
 
 // The test cases for GetResources method
 var testGetResourcesCases = []GetResourcesTestCase{
-	GetResourcesTestCase{"project1", "test", "", []string{"testZone1"}, []resources.Resource{
+	GetResourcesTestCase{"project1", "test", "", []string{"testZone1"}, []*resources.Resource{
 		resources.NewResource("test1", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
-	GetResourcesTestCase{"project1", "test", "", []string{"testZone1", "testZone2"}, []resources.Resource{
+	GetResourcesTestCase{"project1", "test", "", []string{"testZone1", "testZone2"}, []*resources.Resource{
 		resources.NewResource("test1", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test1", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test2", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
-	GetResourcesTestCase{"project1", "test", "test1", []string{"testZone1"}, []resources.Resource{
+	GetResourcesTestCase{"project1", "test", "test1", []string{"testZone1"}, []*resources.Resource{
 		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
-	GetResourcesTestCase{"project1", "test", "test1", []string{"testZone1", "testZone2"}, []resources.Resource{
+	GetResourcesTestCase{"project1", "test", "test1", []string{"testZone1", "testZone2"}, []*resources.Resource{
 		resources.NewResource("test2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test3", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 		resources.NewResource("test2", "testZone2", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
-	GetResourcesTestCase{"project1", "different", "", []string{"testZone1"}, []resources.Resource{
+	GetResourcesTestCase{"project1", "different", "", []string{"testZone1"}, []*resources.Resource{
 		resources.NewResource("differentName", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
-	GetResourcesTestCase{"project2", "test", "", []string{"testZone1"}, []resources.Resource{
+	GetResourcesTestCase{"project2", "test", "", []string{"testZone1"}, []*resources.Resource{
 		resources.NewResource("testProject2", "testZone1", timeCreated, reaperconfig.ResourceType_GCE_VM),
 	}},
 }
@@ -134,7 +134,7 @@ func TestGetResources(t *testing.T) {
 // for testing client's the DeleteResource method.
 type DeleteResourceTestCase struct {
 	ProjectID string
-	Resource  resources.Resource
+	Resource  *resources.Resource
 	Expected  map[string]map[string][]Instance
 }
 
@@ -235,7 +235,7 @@ func deleteResourcesHandler(w http.ResponseWriter, req *http.Request) {
 
 // compareResourceLists compares the resources returned from a GetResources
 // call to what was expected.
-func compareResourceLists(result, expected []resources.Resource) bool {
+func compareResourceLists(result, expected []*resources.Resource) bool {
 	if len(result) != len(expected) {
 		return false
 	}

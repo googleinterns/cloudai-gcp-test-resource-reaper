@@ -34,8 +34,8 @@ import (
 //  - DeleteResource deletes the specified resource.
 type Client interface {
 	Auth(ctx context.Context, opts ...option.ClientOption) error
-	GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error)
-	DeleteResource(projectID string, resource resources.Resource) error
+	GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error)
+	DeleteResource(projectID string, resource *resources.Resource) error
 }
 
 // NewClient is the factory method that returns the correct implementation of the GCP

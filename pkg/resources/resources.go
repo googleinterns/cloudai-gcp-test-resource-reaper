@@ -32,12 +32,12 @@ type Resource struct {
 }
 
 // NewResource constructs a Resource struct.
-func NewResource(name, zone string, timeCreated time.Time, resourceType reaperconfig.ResourceType) Resource {
-	return Resource{name, zone, timeCreated, resourceType}
+func NewResource(name, zone string, timeCreated time.Time, resourceType reaperconfig.ResourceType) *Resource {
+	return &Resource{name, zone, timeCreated, resourceType}
 }
 
 // TimeAlive returns how long a resource has been running.
-func (resource Resource) TimeAlive() float64 {
+func (resource *Resource) TimeAlive() float64 {
 	timeAlive := time.Since(resource.TimeCreated)
 	numSeconds := timeAlive.Seconds()
 	return numSeconds
@@ -59,14 +59,14 @@ func (c *Clock) Now() time.Time {
 
 // WatchedResource represents a resource that the Reaper is monitoring.
 type WatchedResource struct {
-	Resource
+	*Resource
 	TTL   string
 	clock *Clock
 }
 
 // NewWatchedResource constructs a WatchedResource.
-func NewWatchedResource(resource Resource, ttl string) WatchedResource {
-	return WatchedResource{Resource: resource, TTL: ttl}
+func NewWatchedResource(resource *Resource, ttl string) *WatchedResource {
+	return &WatchedResource{Resource: resource, TTL: ttl}
 }
 
 // FreezeClock sets the clock's current time to instant. This is to be
@@ -80,7 +80,7 @@ func (resource *WatchedResource) FreezeClock(instant time.Time) {
 
 // IsReadyForDeletion returns if a WatchedResource is past its time to live (TTL)
 // based of the current time of the Clock.
-func (resource WatchedResource) IsReadyForDeletion() bool {
+func (resource *WatchedResource) IsReadyForDeletion() bool {
 	// Using Cron time format doesn't give a duration, but instead a format of what the time should
 	// look like when deleting
 	schedule, err := cron.ParseStandard(resource.TTL)
@@ -97,7 +97,7 @@ func (resource WatchedResource) IsReadyForDeletion() bool {
 // and name filter, then the skip filter wins and the resource will NOT be watched.
 // An empty string for the skip filter will be interpreted as unset, and therefore
 // will not match any resources.
-func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter string) bool {
+func ShouldAddResourceToWatchlist(resource *Resource, nameFilter, skipFilter string) bool {
 	if len(nameFilter) == 0 {
 		return false
 	}
@@ -117,9 +117,8 @@ func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter stri
 
 // CreateWatchlist creates a list of WatchedResources with a given time to
 // live (TTL).
-func CreateWatchlist(resources []Resource, ttl string) []WatchedResource {
-	// watchlist := make([]WatchedResource, len(resources))
-	var watchlist []WatchedResource
+func CreateWatchlist(resources []*Resource, ttl string) []*WatchedResource {
+	var watchlist []*WatchedResource
 	for _, resource := range resources {
 		watchedResource := NewWatchedResource(resource, ttl)
 		watchlist = append(watchlist, watchedResource)
