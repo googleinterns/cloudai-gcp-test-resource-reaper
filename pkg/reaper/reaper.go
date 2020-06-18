@@ -76,6 +76,7 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
+// TODO: If the same resource is referenced by multiple ResourceConfigs, use the greatest TTL
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
 
