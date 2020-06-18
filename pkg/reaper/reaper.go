@@ -64,6 +64,10 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 				log.Println(deleteError)
 				continue
 			}
+			log.Printf(
+				"Deleted %s resource %s in zone %s\n",
+				watchedResource.Type.String(), watchedResource.Name, watchedResource.Zone,
+			)
 		} else {
 			updatedWatchlist = append(updatedWatchlist, watchedResource)
 		}
