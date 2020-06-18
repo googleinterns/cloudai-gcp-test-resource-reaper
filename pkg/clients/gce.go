@@ -38,8 +38,8 @@ func (client *GCEClient) Auth(ctx context.Context, opts ...option.ClientOption) 
 }
 
 // GetResources gets the Compute Engine instances that pass the filters defined in the ResourceConfig
-func (client *GCEClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]resources.Resource, error) {
-	var instances []resources.Resource
+func (client *GCEClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error) {
+	var instances []*resources.Resource
 	zones := config.GetZones()
 	for _, zone := range zones {
 		zoneInstancesCall := client.Client.Instances.List(projectID, zone)
@@ -61,7 +61,7 @@ func (client *GCEClient) GetResources(projectID string, config *reaperconfig.Res
 }
 
 // DeleteResource deletes the specificed Compute Engine instance.
-func (client *GCEClient) DeleteResource(projectID string, resource resources.Resource) error {
+func (client *GCEClient) DeleteResource(projectID string, resource *resources.Resource) error {
 	deleteInstanceCall := client.Client.Instances.Delete(projectID, resource.Zone, resource.Name)
 	_, err := deleteInstanceCall.Do()
 	return err

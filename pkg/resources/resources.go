@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/robfig/cron/v3"
 )
 
 // A Resource represents a single GCP resource instance of any
@@ -31,15 +32,63 @@ type Resource struct {
 }
 
 // NewResource constructs a Resource struct.
-func NewResource(name, zone string, timeCreated time.Time, resourceType reaperconfig.ResourceType) Resource {
-	return Resource{name, zone, timeCreated, resourceType}
+func NewResource(name, zone string, timeCreated time.Time, resourceType reaperconfig.ResourceType) *Resource {
+	return &Resource{name, zone, timeCreated, resourceType}
 }
 
 // TimeAlive returns how long a resource has been running.
-func (resource Resource) TimeAlive() float64 {
+func (resource *Resource) TimeAlive() float64 {
 	timeAlive := time.Since(resource.TimeCreated)
 	numSeconds := timeAlive.Seconds()
 	return numSeconds
+}
+
+// Clock is a mock struct for handling time dependency for tests.
+type Clock struct {
+	instant time.Time
+}
+
+// Now returns the either time frozen time that was set for testing
+// purposes, or the current time.
+func (c *Clock) Now() time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	return c.instant
+}
+
+// WatchedResource represents a resource that the Reaper is monitoring.
+type WatchedResource struct {
+	*Resource
+	TTL   string
+	clock *Clock
+}
+
+// NewWatchedResource constructs a WatchedResource.
+func NewWatchedResource(resource *Resource, ttl string) *WatchedResource {
+	return &WatchedResource{Resource: resource, TTL: ttl}
+}
+
+// FreezeClock sets the clock's current time to instant. This is to be
+// used during testing.
+func (resource *WatchedResource) FreezeClock(instant time.Time) {
+	if resource.clock == nil {
+		resource.clock = &Clock{}
+	}
+	resource.clock.instant = instant
+}
+
+// IsReadyForDeletion returns if a WatchedResource is past its time to live (TTL)
+// based of the current time of the Clock.
+func (resource *WatchedResource) IsReadyForDeletion() bool {
+	// Using Cron time format doesn't give a duration, but instead a format of what the time should
+	// look like when deleting
+	schedule, err := cron.ParseStandard(resource.TTL)
+	if err != nil {
+		return false
+	}
+	deletionTime := schedule.Next(resource.TimeCreated)
+	return resource.clock.Now().After(deletionTime)
 }
 
 // ShouldAddResourceToWatchlist determines whether a Resource should be watched
@@ -48,7 +97,7 @@ func (resource Resource) TimeAlive() float64 {
 // and name filter, then the skip filter wins and the resource will NOT be watched.
 // An empty string for the skip filter will be interpreted as unset, and therefore
 // will not match any resources.
-func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter string) bool {
+func ShouldAddResourceToWatchlist(resource *Resource, nameFilter, skipFilter string) bool {
 	if len(nameFilter) == 0 {
 		return false
 	}
@@ -64,4 +113,15 @@ func ShouldAddResourceToWatchlist(resource Resource, nameFilter, skipFilter stri
 		return false
 	}
 	return nameMatch
+}
+
+// CreateWatchlist creates a list of WatchedResources with a given time to
+// live (TTL).
+func CreateWatchlist(resources []*Resource, ttl string) []*WatchedResource {
+	var watchlist []*WatchedResource
+	for _, resource := range resources {
+		watchedResource := NewWatchedResource(resource, ttl)
+		watchlist = append(watchlist, watchedResource)
+	}
+	return watchlist
 }
