@@ -122,6 +122,26 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 	reaper.Watchlist = newWatchlist
 }
 
+func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFilter, projectID, uuid string) *reaperconfig.ReaperConfig {
+	return &reaperconfig.ReaperConfig{
+		Resources:  resources,
+		Schedule:   schedule,
+		SkipFilter: skipFilter,
+		ProjectId:  projectID,
+		Uuid:       uuid,
+	}
+}
+
+func NewResourceConfig(resourceType reaperconfig.ResourceType, zones []string, nameFilter, skipFilter, ttl string) *reaperconfig.ResourceConfig {
+	return &reaperconfig.ResourceConfig{
+		ResourceType: resourceType,
+		NameFilter:   nameFilter,
+		SkipFilter:   skipFilter,
+		Zones:        zones,
+		Ttl:          ttl,
+	}
+}
+
 // getAuthedClient is a helper method for getting an authenticated GCP client for a given resource type.
 func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reaperconfig.ResourceType, clientOptions ...option.ClientOption) (clients.Client, error) {
 	resourceClient, err := clients.NewClient(resourceType)
