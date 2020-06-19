@@ -23,3 +23,6 @@
 .bazelversion
 # User-specific .bazelrc
 user.bazelrc
+
+# Config files
+config.json
