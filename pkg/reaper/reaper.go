@@ -112,19 +112,28 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 		watchedResources := resources.CreateWatchlist(filteredResources, resourceConfig.GetTtl())
 
 		// Check for duplicates. If one exists, update the TTL by the max
-		for idx, resource := range watchedResources {
+		for _, resource := range watchedResources {
 			if _, isZoneWatched := newWatchedResources[resource.Zone]; !isZoneWatched {
 				newWatchedResources[resource.Zone] = make(map[string]*resources.WatchedResource)
 			}
 
 			if _, alreadyWatched := newWatchedResources[resource.Zone][resource.Name]; alreadyWatched {
-				newWatchedResources[resource.Zone][resource.Name].TTL = 
+				newTTL, err := maxTTL(resource, newWatchedResources[resource.Zone][resource.Name])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				newWatchedResources[resource.Zone][resource.Name].TTL = newTTL
 			} else {
 				newWatchedResources[resource.Zone][resource.Name] = resource
 			}
 		}
-
-		// newWatchlist = append(newWatchlist, watchedResources...)
+	}
+	// Converting resources map into list
+	for zone := range newWatchedResources {
+		for _, resource := range newWatchedResources[zone] {
+			newWatchlist = append(newWatchlist, resource)
+		}
 	}
 	reaper.Watchlist = newWatchlist
 }
@@ -197,6 +206,18 @@ func (reaper *Reaper) freezeTime(instant time.Time) {
 	}
 }
 
-func maxTTL(resourceA, resourceB *resource.WatchedResource) string {
-	return ""
+func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
+	timeA, err := resourceA.GetDeletionTime()
+	if err != nil {
+		return "", fmt.Errorf("Parsing TTL failed with following error: %s", err.Error())
+	}
+	timeB, err := resourceB.GetDeletionTime()
+	if err != nil {
+		return "", fmt.Errorf("Parsing TTL failed with following error: %s", err.Error())
+	}
+	if timeA.After(timeB) {
+		return resourceA.TTL, nil
+	} else {
+		return resourceB.TTL, nil
+	}
 }
