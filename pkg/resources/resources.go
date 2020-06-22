@@ -15,6 +15,7 @@
 package resources
 
 import (
+	"log"
 	"regexp"
 	"time"
 
@@ -81,14 +82,19 @@ func (resource *WatchedResource) FreezeClock(instant time.Time) {
 // IsReadyForDeletion returns if a WatchedResource is past its time to live (TTL)
 // based of the current time of the Clock.
 func (resource *WatchedResource) IsReadyForDeletion() bool {
+	deletionTime := resource.GetDeletionTime()
+	return resource.clock.Now().After(deletionTime)
+}
+
+func (resource *WatchedResource) GetDeletionTime() time.Time {
 	// Using Cron time format doesn't give a duration, but instead a format of what the time should
 	// look like when deleting
 	schedule, err := cron.ParseStandard(resource.TTL)
 	if err != nil {
-		return false
+		log.Fatal(err)
 	}
-	deletionTime := schedule.Next(resource.TimeCreated)
-	return resource.clock.Now().After(deletionTime)
+	return schedule.Next(resource.TimeCreated)
+
 }
 
 // ShouldAddResourceToWatchlist determines whether a Resource should be watched

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 )
@@ -17,24 +18,26 @@ import (
 var (
 	projectID   string
 	accessToken string
+	ctx         = context.Background()
 )
 
 func TestReaperIntegration(t *testing.T) {
-	setupResources()
-
-	reaperConfig := &reaperconfig.ReaperConfig{
-		Resources:  []*reaperconfig.ResourceConfig{},
-		Schedule:   "* * * * *",
-		SkipFilter: "",
-		ProjectId:  "",
-		Uuid:       "",
+	setup(true)
+	resources := []*reaperconfig.ResourceConfig{
+		NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "", "9 7 * * *"),
+		NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "Another", "", "1 * * * *"),
 	}
-	context := context.Background()
-	createGCEInstance(context, "test-vm", "us-east1-b")
-	reaper := NewReaper()
-	reaper.UpdateReaperConfig(context, reaperConfig)
+	reaperConfig := NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
 
-	fmt.Println("Running Example Func, ", reaper)
+	reaper := NewReaper()
+	reaper.UpdateReaperConfig(ctx, reaperConfig)
+
+	// Set current time to 10 years later for testing
+	reaper.freezeTime(time.Now().AddDate(10, 0, 0))
+
+	reaper.PrintWatchlist()
+	// reaper.RunThroughResources(ctx)
+	// reaper.PrintWatchlist()
 }
 
 type TestConfig struct {
@@ -42,7 +45,14 @@ type TestConfig struct {
 	AccessToken string `json:"accessToken"`
 }
 
-func setupConfig() {
+func setup(shouldCreateResources bool) {
+	readConfigFile()
+	if shouldCreateResources {
+		createTestResources()
+	}
+}
+
+func readConfigFile() {
 	var configData TestConfig
 	jsonConfigFile, err := os.Open("config.json")
 	defer jsonConfigFile.Close()
@@ -56,11 +66,27 @@ func setupConfig() {
 	accessToken = configData.AccessToken
 }
 
-func setupResources() {
-	setupConfig()
+type TestResource struct {
+	Name     string
+	Zone     string
+	DiskName string
 }
 
-func createGCEInstance(ctx context.Context, name, zone string) {
+var testResources = []TestResource{
+	TestResource{"test-resource-1", "us-east1-b", "test-disk-2"},
+	TestResource{"test-resource-2", "us-east1-b", "test-disk-2"},
+	TestResource{"test-resource-3", "us-east1-c", "test-disk-2"},
+	TestResource{"another-resource-1", "us-east1-b", "test-disk-4"},
+	TestResource{"another-resource-2", "us-east1-b", "test-disk-5"},
+}
+
+func createTestResources() {
+	for _, resource := range testResources {
+		createGCEInstance(ctx, resource.Name, resource.Zone, resource.DiskName)
+	}
+}
+
+func createGCEInstance(ctx context.Context, name, zone, diskName string) {
 	endpoint := fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/zones/%s/instances", projectID, zone)
 
 	reqBody := struct {

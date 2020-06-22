@@ -78,6 +78,7 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 // TODO: If the same resource is referenced by multiple ResourceConfigs, use the greatest TTL
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
+	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
 
 	if len(config.GetProjectId()) > 0 {
 		reaper.ProjectID = config.GetProjectId()
@@ -111,15 +112,29 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 		watchedResources := resources.CreateWatchlist(filteredResources, resourceConfig.GetTtl())
 
 		// Check for duplicates. If one exists, update the TTL by the max
-		// for idx, resource := range watchedResources {
-		// 	if duplicateIdx := reaper.indexOfResource(resource); duplicateIdx != -1 {
-		// 		reaper.Watchlist[duplicateIdx].TTL = maxTTL(reaper.Watchlist[duplicateIdx].TTL, resource.TTL)
-		// 	}
-		// }
+		for idx, resource := range watchedResources {
+			if _, isZoneWatched := newWatchedResources[resource.Zone]; !isZoneWatched {
+				newWatchedResources[resource.Zone] = make(map[string]*resources.WatchedResource)
+			}
 
-		newWatchlist = append(newWatchlist, watchedResources...)
+			if _, alreadyWatched := newWatchedResources[resource.Zone][resource.Name]; alreadyWatched {
+				newWatchedResources[resource.Zone][resource.Name].TTL = 
+			} else {
+				newWatchedResources[resource.Zone][resource.Name] = resource
+			}
+		}
+
+		// newWatchlist = append(newWatchlist, watchedResources...)
 	}
 	reaper.Watchlist = newWatchlist
+}
+
+func (reaper *Reaper) PrintWatchlist() {
+	fmt.Print("Watchlist: ")
+	for _, resource := range reaper.Watchlist {
+		fmt.Printf("%s in %s, ", resource.Name, resource.Zone)
+	}
+	fmt.Print("\n")
 }
 
 func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFilter, projectID, uuid string) *reaperconfig.ReaperConfig {
@@ -182,6 +197,6 @@ func (reaper *Reaper) freezeTime(instant time.Time) {
 	}
 }
 
-// func maxTTL(ttlA, ttl_b string) string {
-
-// }
+func maxTTL(resourceA, resourceB *resource.WatchedResource) string {
+	return ""
+}
