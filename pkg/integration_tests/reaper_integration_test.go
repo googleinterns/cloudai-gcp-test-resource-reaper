@@ -1,4 +1,4 @@
-package reaper
+package integration_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 )
 
@@ -22,22 +23,24 @@ var (
 )
 
 func TestReaperIntegration(t *testing.T) {
-	setup(true)
+	setup(false)
 	resources := []*reaperconfig.ResourceConfig{
-		NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "", "9 7 * * *"),
-		NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "Another", "", "1 * * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
-	reaperConfig := NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
+	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
 
-	reaper := NewReaper()
+	reaper := reaper.NewReaper()
 	reaper.UpdateReaperConfig(ctx, reaperConfig)
 
 	// Set current time to 10 years later for testing
-	reaper.freezeTime(time.Now().AddDate(10, 0, 0))
+	// reaper.FreezeTime(time.Now().AddDate(10, 0, 0))
+	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 
 	reaper.PrintWatchlist()
-	// reaper.RunThroughResources(ctx)
-	// reaper.PrintWatchlist()
+	reaper.RunThroughResources(ctx)
+	reaper.PrintWatchlist()
 }
 
 type TestConfig struct {
@@ -74,8 +77,9 @@ type TestResource struct {
 
 var testResources = []TestResource{
 	TestResource{"test-resource-1", "us-east1-b", "test-disk-2"},
-	TestResource{"test-resource-2", "us-east1-b", "test-disk-2"},
+	TestResource{"test-resource-2", "us-east1-b", "test-disk-3"},
 	TestResource{"test-resource-3", "us-east1-c", "test-disk-2"},
+	TestResource{"test-skip", "us-east1-c", "test-disk-3"},
 	TestResource{"another-resource-1", "us-east1-b", "test-disk-4"},
 	TestResource{"another-resource-2", "us-east1-b", "test-disk-5"},
 }
@@ -135,7 +139,7 @@ func createGCEInstance(ctx context.Context, name, zone, diskName string) {
 					DiskName    string `json:"diskName"`
 					SourceImage string `json:"sourceImage"`
 				}{
-					DiskName:    "test-disk-2",
+					DiskName:    diskName,
 					SourceImage: "projects/debian-cloud/global/images/family/debian-9",
 				},
 			},

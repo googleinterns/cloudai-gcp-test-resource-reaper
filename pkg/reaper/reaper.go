@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
@@ -75,7 +74,6 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
-// TODO: If the same resource is referenced by multiple ResourceConfigs, use the greatest TTL
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
 	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
@@ -189,18 +187,9 @@ func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reapercon
 	return resourceClient, nil
 }
 
-func (reaper *Reaper) indexOfResource(resource *resources.WatchedResource) int {
-	for idx, watchedResource := range reaper.Watchlist {
-		if reflect.DeepEqual(resource, watchedResource.Resource) {
-			return idx
-		}
-	}
-	return -1
-}
-
 // freezeTime is a helper method for freezing the clocks of all resources in a reaper's
 // Watchlist to a given instant.
-func (reaper *Reaper) freezeTime(instant time.Time) {
+func (reaper *Reaper) FreezeTime(instant time.Time) {
 	for idx := range reaper.Watchlist {
 		reaper.Watchlist[idx].FreezeClock(instant)
 	}
