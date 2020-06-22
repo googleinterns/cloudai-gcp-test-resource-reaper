@@ -136,6 +136,7 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 	reaper.Watchlist = newWatchlist
 }
 
+// PrintWatchlist neatly prints the reaper's Watchlist.
 func (reaper *Reaper) PrintWatchlist() {
 	fmt.Print("Watchlist: ")
 	for _, resource := range reaper.Watchlist {
@@ -144,6 +145,7 @@ func (reaper *Reaper) PrintWatchlist() {
 	fmt.Print("\n")
 }
 
+// NewReaperConfig constructs a new ReaperConfig.
 func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFilter, projectID, uuid string) *reaperconfig.ReaperConfig {
 	return &reaperconfig.ReaperConfig{
 		Resources:  resources,
@@ -154,6 +156,7 @@ func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFil
 	}
 }
 
+// NewResourceConfig constructs a new ResourceConfig.
 func NewResourceConfig(resourceType reaperconfig.ResourceType, zones []string, nameFilter, skipFilter, ttl string) *reaperconfig.ResourceConfig {
 	return &reaperconfig.ResourceConfig{
 		ResourceType: resourceType,
@@ -187,7 +190,7 @@ func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reapercon
 	return resourceClient, nil
 }
 
-// freezeTime is a helper method for freezing the clocks of all resources in a reaper's
+// FreezeTime is a helper method for freezing the clocks of all resources in a reaper's
 // Watchlist to a given instant.
 func (reaper *Reaper) FreezeTime(instant time.Time) {
 	for idx := range reaper.Watchlist {
@@ -195,6 +198,8 @@ func (reaper *Reaper) FreezeTime(instant time.Time) {
 	}
 }
 
+// maxTTL is a helper function to determine which watched resource will be deleted later,
+// and return its TTL.
 func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
 	timeA, err := resourceA.GetDeletionTime()
 	if err != nil {
