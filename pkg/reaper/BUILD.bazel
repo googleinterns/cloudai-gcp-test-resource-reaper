@@ -15,10 +15,7 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "integration_test.go",
-        "reaper_test.go",
-    ],
+    srcs = ["reaper_test.go"],
     embed = [":go_default_library"],
     deps = [
         "//pkg/resources:go_default_library",

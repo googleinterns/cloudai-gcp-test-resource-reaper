@@ -83,7 +83,7 @@ func TestRunThroughResources(t *testing.T) {
 
 	for _, testCase := range reaperRunTestCases {
 		testReaper := createTestReaper("testProject", testCase.Watchlist...)
-		testReaper.freezeTime(currentTime)
+		testReaper.FreezeTime(currentTime)
 
 		testReaper.RunThroughResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
