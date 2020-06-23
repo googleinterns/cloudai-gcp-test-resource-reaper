@@ -26,6 +26,10 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Start
+// go runOnScheudle()
+// Or if on scheulde, run and manager would run in infinite loop
+
 // Reaper represents the resource reaper for a single GCP project. The reaper will
 // run on a given schedule defined in cron time format.
 type Reaper struct {
@@ -39,6 +43,12 @@ type Reaper struct {
 func NewReaper() *Reaper {
 	return &Reaper{}
 }
+
+func (reaper *Reaper) RunOnSchedule() {
+	
+}
+
+// Sweep
 
 // RunThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
 // determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
