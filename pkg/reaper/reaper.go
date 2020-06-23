@@ -23,12 +23,9 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/robfig/cron/v3"
 	"google.golang.org/api/option"
 )
-
-// Start
-// go runOnScheudle()
-// Or if on scheulde, run and manager would run in infinite loop
 
 // Reaper represents the resource reaper for a single GCP project. The reaper will
 // run on a given schedule defined in cron time format.
@@ -36,7 +33,28 @@ type Reaper struct {
 	UUID      string
 	ProjectID string
 	Watchlist []*resources.WatchedResource
-	Schedule  string
+	Schedule  cron.Schedule
+
+	lastRun time.Time
+	*Clock
+}
+
+type Clock struct {
+	instant time.Time
+}
+
+func (c *Clock) Now() time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	return c.instant
+}
+
+func (clock *Clock) FreezeClock(instant time.Time) {
+	if clock == nil {
+		clock = &Clock{}
+	}
+	clock.instant = instant
 }
 
 // NewReaper constructs a new reaper.
@@ -44,16 +62,18 @@ func NewReaper() *Reaper {
 	return &Reaper{}
 }
 
-func (reaper *Reaper) RunOnSchedule() {
-	
+func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) {
+	nextRun := reaper.Schedule.Next(reaper.lastRun)
+	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) {
+		reaper.SweepThroughResources(ctx, clientOptions...)
+		reaper.lastRun = reaper.Clock.Now()
+	}
 }
 
-// Sweep
-
-// RunThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
+// SweepThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
 // determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
 // Watchlist is updated accordingly.
-func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var updatedWatchlist []*resources.WatchedResource
 
 	for _, watchedResource := range reaper.Watchlist {
@@ -95,7 +115,7 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 		reaper.UUID = config.GetUuid()
 	}
 	if len(config.GetSchedule()) > 0 {
-		reaper.Schedule = config.GetSchedule()
+		reaper.Schedule = parseSchedule(config.GetSchedule())
 	}
 
 	resourceConfigs := config.GetResources()
@@ -224,4 +244,14 @@ func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
 	} else {
 		return resourceB.TTL, nil
 	}
+}
+
+// Should a default schedule be returned?
+func parseSchedule(schedule string) cron.Schedule {
+	parsedSchedule, err := cron.ParseStandard(schedule)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	return parsedSchedule
 }

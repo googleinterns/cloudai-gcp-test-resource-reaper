@@ -75,7 +75,7 @@ var reaperRunTestCases = []ReaperRunTestCase{
 	},
 }
 
-func TestRunThroughResources(t *testing.T) {
+func TestSweepThroughResources(t *testing.T) {
 	server := createServer(deleteComputeEngineResourceHandler)
 	defer server.Close()
 
@@ -85,7 +85,7 @@ func TestRunThroughResources(t *testing.T) {
 		testReaper := createTestReaper("testProject", testCase.Watchlist...)
 		testReaper.FreezeTime(currentTime)
 
-		testReaper.RunThroughResources(testContext, testClientOptions...)
+		testReaper.SweepThroughResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
 			t.Errorf("Reaper not updated correctly")
 		}
@@ -275,6 +275,6 @@ func createTestReaper(projectID string, watchlist ...*resources.WatchedResource)
 		UUID:      "TestUUID",
 		ProjectID: projectID,
 		Watchlist: watchlist,
-		Schedule:  "TestSchedule",
+		Schedule:  nil,
 	}
 }

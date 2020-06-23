@@ -3,9 +3,9 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "go_default_test",
     srcs = ["reaper_integration_test.go"],
+    data = ["config.json"],
     deps = [
         "//pkg/reaper:go_default_library",
         "//proto:go_default_library",
     ],
-    data = ["config.json"],
 )

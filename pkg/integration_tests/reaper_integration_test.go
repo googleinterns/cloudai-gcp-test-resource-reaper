@@ -55,7 +55,7 @@ func TestReaperIntegration(t *testing.T) {
 	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 
 	reaper.PrintWatchlist()
-	reaper.RunThroughResources(ctx)
+	reaper.SweepThroughResources(ctx)
 	reaper.PrintWatchlist()
 }
 
