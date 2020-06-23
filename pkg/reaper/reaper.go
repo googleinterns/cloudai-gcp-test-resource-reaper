@@ -50,11 +50,11 @@ func (c *Clock) Now() time.Time {
 	return c.instant
 }
 
-func (clock *Clock) FreezeClock(instant time.Time) {
-	if clock == nil {
-		clock = &Clock{}
+func (reaper *Reaper) FreezeClock(instant time.Time) {
+	if reaper.Clock == nil {
+		reaper.Clock = &Clock{}
 	}
-	clock.instant = instant
+	reaper.Clock.instant = instant
 }
 
 // NewReaper constructs a new reaper.
@@ -62,12 +62,14 @@ func NewReaper() *Reaper {
 	return &Reaper{}
 }
 
-func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
-	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) {
+	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
+		return true
 	}
+	return false
 }
 
 // SweepThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
