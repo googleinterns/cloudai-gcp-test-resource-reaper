@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -59,30 +58,11 @@ func TestReaperIntegration(t *testing.T) {
 	reaper.PrintWatchlist()
 }
 
-type TestConfig struct {
-	ProjectID   string `json:"projectId"`
-	AccessToken string `json:"accessToken"`
-}
-
 func setup(shouldCreateResources bool) {
-	readConfigFile()
+	projectID, accessToken = ReadConfigFile()
 	if shouldCreateResources {
 		createTestResources()
 	}
-}
-
-func readConfigFile() {
-	var configData TestConfig
-	jsonConfigFile, err := os.Open("config.json")
-	defer jsonConfigFile.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	configParser := json.NewDecoder(jsonConfigFile)
-	configParser.Decode(&configData)
-
-	projectID = configData.ProjectID
-	accessToken = configData.AccessToken
 }
 
 type TestResource struct {

@@ -35,6 +35,7 @@ type Reaper struct {
 	Watchlist []*resources.WatchedResource
 	Schedule  cron.Schedule
 
+	config  *reaperconfig.ReaperConfig
 	lastRun time.Time
 	*Clock
 }
@@ -66,6 +67,7 @@ func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
 		log.Printf("Running reaper with UUID: %s\n", reaper.UUID)
+		reaper.GetResources(ctx, clientOptions...)
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
 		return true
@@ -108,20 +110,21 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
+	reaper.config = config
+
+	reaper.ProjectID = config.GetProjectId()
+	reaper.UUID = config.GetUuid()
+	reaper.Schedule = parseSchedule(config.GetSchedule())
+	reaper.GetResources(ctx, clientOptions...)
+}
+
+// GetResources gets all the GCP resources defined in the ReaperConfig, and adds them to the
+// reaper's Watchlist.
+func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
 	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
 
-	if len(config.GetProjectId()) > 0 {
-		reaper.ProjectID = config.GetProjectId()
-	}
-	if len(config.GetUuid()) > 0 {
-		reaper.UUID = config.GetUuid()
-	}
-	if len(config.GetSchedule()) > 0 {
-		reaper.Schedule = parseSchedule(config.GetSchedule())
-	}
-
-	resourceConfigs := config.GetResources()
+	resourceConfigs := reaper.config.GetResources()
 	for _, resourceConfig := range resourceConfigs {
 		resourceType := resourceConfig.GetResourceType()
 

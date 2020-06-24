@@ -12,13 +12,15 @@ import (
 )
 
 func TestReaperManagerIntegration(t *testing.T) {
+	projectID, _ := ReadConfigFile()
+
 	reaperManager := manager.NewReaperManager(context.Background())
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go reaperManager.MonitorReapers(wg)
 
 	resources := []*reaperconfig.ResourceConfig{
-		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "@every 1m"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
