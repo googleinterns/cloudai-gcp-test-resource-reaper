@@ -65,6 +65,7 @@ func NewReaper() *Reaper {
 func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
+		log.Printf("Running reaper with UUID: %s\n", reaper.UUID)
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
 		return true
