@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
@@ -34,36 +33,6 @@ var (
 	accessToken string
 	ctx         = context.Background()
 )
-
-// TestReaperIntegration creates test instances in GCP, and runs a reaper with a config to test functionality.
-func TestReaperIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping reaper integration test in short mode")
-	}
-	setup(false)
-	resources := []*reaperconfig.ResourceConfig{
-		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
-		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
-		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
-	}
-	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
-
-	reaper := reaper.NewReaper()
-	reaper.UpdateReaperConfig(ctx, reaperConfig)
-
-	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
-
-	reaper.PrintWatchlist()
-	reaper.SweepThroughResources(ctx)
-	reaper.PrintWatchlist()
-}
-
-func setup(shouldCreateResources bool) {
-	projectID, accessToken = ReadConfigFile()
-	if shouldCreateResources {
-		createTestResources()
-	}
-}
 
 type TestResource struct {
 	Name     string
@@ -78,6 +47,53 @@ var testResources = []TestResource{
 	TestResource{"test-skip", "us-east1-c", "test-disk-3"},
 	TestResource{"another-resource-1", "us-east1-b", "test-disk-4"},
 	TestResource{"another-resource-2", "us-east1-b", "test-disk-5"},
+}
+
+// TestReaperIntegration creates test instances in GCP, and runs a reaper with a config to test functionality.
+func TestReaperIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping reaper integration test in short mode")
+	}
+	setup(true)
+	resources := []*reaperconfig.ResourceConfig{
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
+		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
+	}
+	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
+
+	reaper := reaper.NewReaper()
+	reaper.UpdateReaperConfig(ctx, reaperConfig)
+
+	var expectedWatchedResources = []string{"test-resource-1", "test-resource-2", "test-resource-3", "another-resource-1", "another-resource-2"}
+	for _, expectedResource := range expectedWatchedResources {
+		resourceIdx := -1
+		for idx, watchedResource := range reaper.Watchlist {
+			if strings.Compare(watchedResource.Name, expectedResource) == 0 {
+				resourceIdx = idx
+				break
+			}
+		}
+		if resourceIdx == -1 {
+			t.Errorf("Resource %s is not watched by Reaper", expectedResource)
+		}
+	}
+
+	reaper.SweepThroughResources(ctx)
+	expectedResource := "another-resource-1"
+	for _, watchedResource := range reaper.Watchlist {
+		if strings.Compare(watchedResource.Name, expectedResource) == 0 {
+			return
+		}
+	}
+	t.Errorf("Resource %s not in watchlist", expectedResource)
+}
+
+func setup(shouldCreateResources bool) {
+	projectID, accessToken = ReadConfigFile()
+	if shouldCreateResources {
+		createTestResources()
+	}
 }
 
 func createTestResources() {
