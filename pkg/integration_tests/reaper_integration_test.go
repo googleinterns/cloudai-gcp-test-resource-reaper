@@ -36,12 +36,27 @@ var (
 	ctx         = context.Background()
 )
 
+type TestResource struct {
+	Name     string
+	Zone     string
+	DiskName string
+}
+
+var testResources = []TestResource{
+	TestResource{"test-resource-1", "us-east1-b", "test-disk-2"},
+	TestResource{"test-resource-2", "us-east1-b", "test-disk-3"},
+	TestResource{"test-resource-3", "us-east1-c", "test-disk-2"},
+	TestResource{"test-skip", "us-east1-c", "test-disk-3"},
+	TestResource{"another-resource-1", "us-east1-b", "test-disk-4"},
+	TestResource{"another-resource-2", "us-east1-b", "test-disk-5"},
+}
+
 // TestReaperIntegration creates test instances in GCP, and runs a reaper with a config to test functionality.
 func TestReaperIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping reaper integration test in short mode")
 	}
-	setup(false)
+	setup(true)
 	resources := []*reaperconfig.ResourceConfig{
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
@@ -52,11 +67,30 @@ func TestReaperIntegration(t *testing.T) {
 	reaper := reaper.NewReaper()
 	reaper.UpdateReaperConfig(ctx, reaperConfig)
 
-	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
+	var expectedWatchedResources = []string{"test-resource-1", "test-resource-2", "test-resource-3", "another-resource-1", "another-resource-2"}
+	for _, expectedResource := range expectedWatchedResources {
+		resourceIdx := -1
+		for idx, watchedResource := range reaper.Watchlist {
+			if strings.Compare(watchedResource.Name, expectedResource) == 0 {
+				resourceIdx = idx
+				break
+			}
+		}
+		if resourceIdx == -1 {
+			t.Errorf("Resource %s is not watched by Reaper", expectedResource)
+		}
+	}
 
-	reaper.PrintWatchlist()
+	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 	reaper.RunThroughResources(ctx)
-	reaper.PrintWatchlist()
+
+	expectedResource := "another-resource-1"
+	for _, watchedResource := range reaper.Watchlist {
+		if strings.Compare(watchedResource.Name, expectedResource) == 0 {
+			return
+		}
+	}
+	t.Errorf("Resource %s not in watchlist", expectedResource)
 }
 
 type TestConfig struct {
@@ -83,21 +117,6 @@ func readConfigFile() {
 
 	projectID = configData.ProjectID
 	accessToken = configData.AccessToken
-}
-
-type TestResource struct {
-	Name     string
-	Zone     string
-	DiskName string
-}
-
-var testResources = []TestResource{
-	TestResource{"test-resource-1", "us-east1-b", "test-disk-2"},
-	TestResource{"test-resource-2", "us-east1-b", "test-disk-3"},
-	TestResource{"test-resource-3", "us-east1-c", "test-disk-2"},
-	TestResource{"test-skip", "us-east1-c", "test-disk-3"},
-	TestResource{"another-resource-1", "us-east1-b", "test-disk-4"},
-	TestResource{"another-resource-2", "us-east1-b", "test-disk-5"},
 }
 
 func createTestResources() {
