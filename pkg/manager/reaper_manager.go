@@ -77,9 +77,9 @@ func (manager *ReaperManager) MonitorReapers(wg *sync.WaitGroup) {
 		case reaperUUID := <-manager.deleteReaper:
 			deleteSuccess := manager.handleDeleteReaper(reaperUUID)
 			if deleteSuccess {
-				log.Printf("Reaper with UUID %s successfully deleted")
+				log.Printf("Reaper with UUID %s successfully deleted", reaperUUID)
 			} else {
-				log.Printf("Reaper with UUID %s unsuccessfully deleted")
+				log.Printf("Reaper with UUID %s unsuccessfully deleted", reaperUUID)
 			}
 		default:
 			for _, reaper := range manager.Reapers {
