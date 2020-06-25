@@ -25,8 +25,10 @@ func TestReaperManagerIntegration(t *testing.T) {
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
 	reaperConfig := reaper.NewReaperConfig(resources, "@every 1m", "SkipFilter", projectID, "TestUUID")
+
 	newReaper := reaper.NewReaper()
-	newReaper.UpdateReaperConfig(context.Background(), reaperConfig)
+	newReaper.UpdateReaperConfig(reaperConfig)
+	newReaper.GetResources(context.Background())
 	newReaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 
 	reaperManager.AddReaper(newReaper)

@@ -63,7 +63,8 @@ func TestReaperIntegration(t *testing.T) {
 	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
 
 	reaper := reaper.NewReaper()
-	reaper.UpdateReaperConfig(ctx, reaperConfig)
+	reaper.UpdateReaperConfig(reaperConfig)
+	reaper.GetResources(ctx)
 
 	var expectedWatchedResources = []string{"test-resource-1", "test-resource-2", "test-resource-3", "another-resource-1", "another-resource-2"}
 	for _, expectedResource := range expectedWatchedResources {

@@ -109,13 +109,12 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
-func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) UpdateReaperConfig(config *reaperconfig.ReaperConfig) {
 	reaper.config = config
 
 	reaper.ProjectID = config.GetProjectId()
 	reaper.UUID = config.GetUuid()
 	reaper.Schedule = parseSchedule(config.GetSchedule())
-	reaper.GetResources(ctx, clientOptions...)
 }
 
 // GetResources gets all the GCP resources defined in the ReaperConfig, and adds them to the
