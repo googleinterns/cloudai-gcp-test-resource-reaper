@@ -17,6 +17,7 @@ package manager
 import (
 	"context"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +33,7 @@ type ReaperManager struct {
 	ctx           context.Context
 	clientOptions []option.ClientOption
 	newReaper     chan *reaper.Reaper
+	deleteReaper  chan string
 	quit          chan bool
 }
 
@@ -45,6 +47,7 @@ func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption)
 		ctx:           ctx,
 		clientOptions: clientOptions,
 		newReaper:     make(chan *reaper.Reaper),
+		deleteReaper:  make(chan string),
 		quit:          make(chan bool),
 	}
 }
@@ -71,6 +74,13 @@ func (manager *ReaperManager) MonitorReapers(wg *sync.WaitGroup) {
 		case newReaper := <-manager.newReaper:
 			manager.Reapers = append(manager.Reapers, newReaper)
 			log.Printf("Added new reaper with UUID: %s", newReaper.UUID)
+		case reaperUUID := <-manager.deleteReaper:
+			deleteSuccess := manager.handleDeleteReaper(reaperUUID)
+			if deleteSuccess {
+				log.Printf("Reaper with UUID %s successfully deleted")
+			} else {
+				log.Printf("Reaper with UUID %s unsuccessfully deleted")
+			}
 		default:
 			for _, reaper := range manager.Reapers {
 				reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
@@ -92,7 +102,41 @@ func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.
 	manager.newReaper <- newReaper
 }
 
-// Quit ends the reaper manager process.
-func (manager *ReaperManager) Quit() {
+// Shutdown ends the reaper manager process.
+func (manager *ReaperManager) Shutdown() {
 	manager.quit <- true
+}
+
+// DeleteReaper sends a signal to delete a reaper with the given UUID.
+func (manager *ReaperManager) DeleteReaper(uuid string) {
+	manager.deleteReaper <- uuid
+}
+
+// handleDeleteReaper deletes the reaper with the given UUID, and returns whether the delete
+// was successful. Note that false is returned if no reaper exists with the given UUID.
+func (manager *ReaperManager) handleDeleteReaper(uuid string) bool {
+	for idx, watchedReaper := range manager.Reapers {
+		if strings.Compare(watchedReaper.UUID, uuid) == 0 {
+			watchedReaper = nil
+			manager.Reapers = append(manager.Reapers[:idx], manager.Reapers[idx+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// ListReapers returns a list of reapers being managed by the ReaperManager.
+func (manager *ReaperManager) ListReapers() []*reaper.Reaper {
+	return manager.Reapers
+}
+
+// GetReaper returns the reaper with the given UUID, or returns nil
+// if no such reaper exists.
+func (manager *ReaperManager) GetReaper(uuid string) *reaper.Reaper {
+	for _, watchedReaper := range manager.Reapers {
+		if strings.Compare(watchedReaper.UUID, uuid) == 0 {
+			return watchedReaper
+		}
+	}
+	return nil
 }
