@@ -36,10 +36,8 @@ type Reaper struct {
 }
 
 // NewReaper constructs a new reaper.
-func NewReaper(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) *Reaper {
-	reaper := &Reaper{}
-	reaper.UpdateReaperConfig(ctx, config, clientOptions...)
-	return reaper
+func NewReaper() *Reaper {
+	return &Reaper{}
 }
 
 // RunThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
@@ -78,6 +76,7 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
 func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
+	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
 
 	if len(config.GetProjectId()) > 0 {
 		reaper.ProjectID = config.GetProjectId()
@@ -109,9 +108,63 @@ func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconf
 			continue
 		}
 		watchedResources := resources.CreateWatchlist(filteredResources, resourceConfig.GetTtl())
-		newWatchlist = append(newWatchlist, watchedResources...)
+
+		// Check for duplicates. If one exists, update the TTL by the max
+		for _, resource := range watchedResources {
+			if _, isZoneWatched := newWatchedResources[resource.Zone]; !isZoneWatched {
+				newWatchedResources[resource.Zone] = make(map[string]*resources.WatchedResource)
+			}
+
+			if _, alreadyWatched := newWatchedResources[resource.Zone][resource.Name]; alreadyWatched {
+				newTTL, err := maxTTL(resource, newWatchedResources[resource.Zone][resource.Name])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				newWatchedResources[resource.Zone][resource.Name].TTL = newTTL
+			} else {
+				newWatchedResources[resource.Zone][resource.Name] = resource
+			}
+		}
+	}
+	// Converting resources map into list
+	for zone := range newWatchedResources {
+		for _, resource := range newWatchedResources[zone] {
+			newWatchlist = append(newWatchlist, resource)
+		}
 	}
 	reaper.Watchlist = newWatchlist
+}
+
+// PrintWatchlist neatly prints the reaper's Watchlist.
+func (reaper *Reaper) PrintWatchlist() {
+	fmt.Print("Watchlist: ")
+	for _, resource := range reaper.Watchlist {
+		fmt.Printf("%s in %s, ", resource.Name, resource.Zone)
+	}
+	fmt.Print("\n")
+}
+
+// NewReaperConfig constructs a new ReaperConfig.
+func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFilter, projectID, uuid string) *reaperconfig.ReaperConfig {
+	return &reaperconfig.ReaperConfig{
+		Resources:  resources,
+		Schedule:   schedule,
+		SkipFilter: skipFilter,
+		ProjectId:  projectID,
+		Uuid:       uuid,
+	}
+}
+
+// NewResourceConfig constructs a new ResourceConfig.
+func NewResourceConfig(resourceType reaperconfig.ResourceType, zones []string, nameFilter, skipFilter, ttl string) *reaperconfig.ResourceConfig {
+	return &reaperconfig.ResourceConfig{
+		ResourceType: resourceType,
+		NameFilter:   nameFilter,
+		SkipFilter:   skipFilter,
+		Zones:        zones,
+		Ttl:          ttl,
+	}
 }
 
 // getAuthedClient is a helper method for getting an authenticated GCP client for a given resource type.
@@ -137,10 +190,28 @@ func getAuthedClient(ctx context.Context, reaper *Reaper, resourceType reapercon
 	return resourceClient, nil
 }
 
-// freezeTime is a helper method for freezing the clocks of all resources in a reaper's
+// FreezeTime is a helper method for freezing the clocks of all resources in a reaper's
 // Watchlist to a given instant.
-func (reaper *Reaper) freezeTime(instant time.Time) {
+func (reaper *Reaper) FreezeTime(instant time.Time) {
 	for idx := range reaper.Watchlist {
 		reaper.Watchlist[idx].FreezeClock(instant)
+	}
+}
+
+// maxTTL is a helper function to determine which watched resource will be deleted later,
+// and return its TTL.
+func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
+	timeA, err := resourceA.GetDeletionTime()
+	if err != nil {
+		return "", fmt.Errorf("Parsing TTL failed with following error: %s", err.Error())
+	}
+	timeB, err := resourceB.GetDeletionTime()
+	if err != nil {
+		return "", fmt.Errorf("Parsing TTL failed with following error: %s", err.Error())
+	}
+	if timeA.After(timeB) {
+		return resourceA.TTL, nil
+	} else {
+		return resourceB.TTL, nil
 	}
 }
