@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ var (
 
 type ReaperRunTestCase struct {
 	Watchlist []*resources.WatchedResource
-	Expected  Reaper
+	Expected  *Reaper
 }
 
 var reaperRunTestCases = []ReaperRunTestCase{
@@ -87,18 +88,55 @@ func TestSweepThroughResources(t *testing.T) {
 
 		testReaper.SweepThroughResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
-			t.Errorf("Reaper not updated correctly")
+			t.Errorf("Reaper not updated correctly after sweep through watched resources")
 		}
 	}
 }
 
-type UpdateReaperTestCase struct {
+type UpdateReaperConfigTestCase struct {
 	ReaperConfig *reaperconfig.ReaperConfig
-	Expected     Reaper
+	Expected     *Reaper
 }
 
-var updateReaperTestCases = []UpdateReaperTestCase{
-	UpdateReaperTestCase{
+var updateReaperConfigTestCases = []UpdateReaperConfigTestCase{
+	UpdateReaperConfigTestCase{
+		createReaperConfig("SampleProject", "", "* * * * *"),
+		createTestReaper("SampleProject", "* * * * *"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("NewProjectID", "", "* * 10 * *"),
+		createTestReaper("NewProjectID", "* * 10 * *"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("AnotherProjectID", "", "59 23 31 12 7"),
+		createTestReaper("AnotherProjectID", "59 23 31 12 7"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("ProjectIDAgain", "", "@every 1h30m"),
+		createTestReaper("ProjectIDAgain", "@every 1h30m"),
+	},
+}
+
+func TestUpdateReaperConfig(t *testing.T) {
+	testReaper := &Reaper{}
+	for _, testCase := range updateReaperConfigTestCases {
+		testReaper.UpdateReaperConfig(testCase.ReaperConfig)
+		if strings.Compare(testReaper.ProjectID, testCase.Expected.ProjectID) != 0 {
+			t.Errorf("Expected project id: %s, got: %s", testCase.Expected.ProjectID, testReaper.ProjectID)
+		}
+		if !reflect.DeepEqual(testReaper.Schedule, testCase.Expected.Schedule) {
+			t.Error("Schedule not updated correctly")
+		}
+	}
+}
+
+type GetResourcesTestCase struct {
+	ReaperConfig *reaperconfig.ReaperConfig
+	Expected     *Reaper
+}
+
+var getResourcesTestCases = []GetResourcesTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
 			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1"),
 		),
@@ -110,7 +148,7 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
 			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
 		),
@@ -121,7 +159,7 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
 			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
 		),
@@ -134,7 +172,7 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
 			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
 		),
@@ -146,7 +184,7 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
 			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
 		),
@@ -161,18 +199,21 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 	},
 }
 
-func TestUpdateReaperConfig(t *testing.T) {
+func TestGetResources(t *testing.T) {
 	server := createServer(getComputeEngineResourcesHandler)
 	defer server.Close()
 
 	testClientOptions := getTestClientOptions(server)
-	testReaper := Reaper{}
+	testReaper := &Reaper{}
 
 	setupTestData()
-	for _, testCase := range updateReaperTestCases {
-		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOptions...)
+	for _, testCase := range getResourcesTestCases {
+		testReaper.config = testCase.ReaperConfig
+		testReaper.ProjectID = testCase.ReaperConfig.GetProjectId()
+
+		testReaper.GetResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
-			t.Errorf("Reaper not updated correctly")
+			t.Errorf("GetResources did not get correct resources based off config")
 		}
 	}
 }
@@ -229,7 +270,7 @@ func getComputeEngineResourcesHandler(w http.ResponseWriter, req *http.Request) 
 }
 
 // Only checking if names are equal since test is setup to have unique names
-func areWatchlistsEqual(result, expected Reaper) bool {
+func areWatchlistsEqual(result, expected *Reaper) bool {
 	if len(result.Watchlist) != len(expected.Watchlist) {
 		return false
 	}
@@ -296,8 +337,8 @@ func createResourceConfig(resourceType reaperconfig.ResourceType, nameFilter, sk
 	}
 }
 
-func createTestReaper(projectID, schedule string, watchlist ...*resources.WatchedResource) Reaper {
-	return Reaper{
+func createTestReaper(projectID, schedule string, watchlist ...*resources.WatchedResource) *Reaper {
+	return &Reaper{
 		UUID:      "TestUUID",
 		ProjectID: projectID,
 		Watchlist: watchlist,
