@@ -60,7 +60,7 @@ func TestReaperIntegration(t *testing.T) {
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
-	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
+	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", projectID, "UUID")
 
 	reaper := reaper.NewReaper()
 	reaper.UpdateReaperConfig(reaperConfig)

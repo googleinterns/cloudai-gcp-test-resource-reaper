@@ -26,6 +26,10 @@ import (
 )
 
 func TestReaperManagerIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping reaper integration test in short mode")
+	}
+
 	projectID, _ := ReadConfigFile()
 
 	reaperManager := manager.NewReaperManager(context.Background())
@@ -38,7 +42,7 @@ func TestReaperManagerIntegration(t *testing.T) {
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
-	reaperConfig := reaper.NewReaperConfig(resources, "@every 1m", "SkipFilter", projectID, "TestUUID")
+	reaperConfig := reaper.NewReaperConfig(resources, "@every 1m", projectID, "TestUUID")
 
 	newReaper := reaper.NewReaper()
 	newReaper.UpdateReaperConfig(reaperConfig)

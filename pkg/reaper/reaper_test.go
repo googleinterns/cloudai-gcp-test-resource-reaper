@@ -100,19 +100,19 @@ type UpdateReaperConfigTestCase struct {
 
 var updateReaperConfigTestCases = []UpdateReaperConfigTestCase{
 	UpdateReaperConfigTestCase{
-		createReaperConfig("SampleProject", "", "* * * * *"),
+		createReaperConfig("SampleProject", "* * * * *"),
 		createTestReaper("SampleProject", "* * * * *"),
 	},
 	UpdateReaperConfigTestCase{
-		createReaperConfig("NewProjectID", "", "* * 10 * *"),
+		createReaperConfig("NewProjectID", "* * 10 * *"),
 		createTestReaper("NewProjectID", "* * 10 * *"),
 	},
 	UpdateReaperConfigTestCase{
-		createReaperConfig("AnotherProjectID", "", "59 23 31 12 7"),
+		createReaperConfig("AnotherProjectID", "59 23 31 12 7"),
 		createTestReaper("AnotherProjectID", "59 23 31 12 7"),
 	},
 	UpdateReaperConfigTestCase{
-		createReaperConfig("ProjectIDAgain", "", "@every 1h30m"),
+		createReaperConfig("ProjectIDAgain", "@every 1h30m"),
 		createTestReaper("ProjectIDAgain", "@every 1h30m"),
 	},
 }
@@ -138,7 +138,7 @@ type GetResourcesTestCase struct {
 var getResourcesTestCases = []GetResourcesTestCase{
 	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1"),
 		),
 		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
@@ -150,7 +150,7 @@ var getResourcesTestCases = []GetResourcesTestCase{
 	},
 	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
 		),
 		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
@@ -161,7 +161,7 @@ var getResourcesTestCases = []GetResourcesTestCase{
 	},
 	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
 		),
 		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
@@ -174,7 +174,7 @@ var getResourcesTestCases = []GetResourcesTestCase{
 	},
 	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
 		),
 		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
@@ -186,7 +186,7 @@ var getResourcesTestCases = []GetResourcesTestCase{
 	},
 	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
 		),
 		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
@@ -317,13 +317,12 @@ func setupTestData() {
 	}
 }
 
-func createReaperConfig(projectID, skipFilter, schedule string, resources ...*reaperconfig.ResourceConfig) *reaperconfig.ReaperConfig {
+func createReaperConfig(projectID, schedule string, resources ...*reaperconfig.ResourceConfig) *reaperconfig.ReaperConfig {
 	return &reaperconfig.ReaperConfig{
-		Resources:  resources,
-		Schedule:   schedule,
-		SkipFilter: skipFilter,
-		ProjectId:  projectID,
-		Uuid:       "TestUUID",
+		Resources: resources,
+		Schedule:  schedule,
+		ProjectId: projectID,
+		Uuid:      "TestUUID",
 	}
 }
 
