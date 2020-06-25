@@ -63,6 +63,8 @@ func NewReaper() *Reaper {
 	return &Reaper{}
 }
 
+// RunOnSchedule updates the reaper's watchlist and runs a sweep if the current time is equal to or after
+// the next schedule run time.
 func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
@@ -118,7 +120,8 @@ func (reaper *Reaper) UpdateReaperConfig(config *reaperconfig.ReaperConfig) {
 }
 
 // GetResources gets all the GCP resources defined in the ReaperConfig, and adds them to the
-// reaper's Watchlist.
+// reaper's Watchlist. Note, if the same resource is referenced by multiple ResourceConfigs,
+// then the TTL of that resource will be the one that deletes the resource the latest.
 func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
 	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
@@ -251,7 +254,9 @@ func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
 	}
 }
 
-// Should a default schedule be returned?
+// parseSchedule parses the cron time string that defined the reaper's
+// run schedule, and either returns a Schedule struct, or nil if the
+// schedule string is malformed.
 func parseSchedule(schedule string) cron.Schedule {
 	parsedSchedule, err := cron.ParseStandard(schedule)
 	if err != nil {
