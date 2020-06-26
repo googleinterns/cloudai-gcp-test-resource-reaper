@@ -15,40 +15,71 @@
 package manager
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"google.golang.org/api/option"
 )
 
-// type OperationType int
+type OperationType int
 
-// const (
-// 	Add    OperationType = 0
-// 	Delete OperationType = 1
-// 	Quit   OperationType = 2
-// 	Run    OperationType = 3
-// )
+const (
+	Add    OperationType = 0
+	Delete OperationType = 1
+	Run    OperationType = 2
+)
 
-// type MonitorReapersTestCase struct {
-// 	Type   OperationType
-// 	Reaper *reaper.Reaper
-// }
+type SweepReapersTestCase struct {
+	Type   OperationType
+	Reaper *reaper.Reaper
+	UUID   string
+}
 
-// var monitorReapersTestCases = []MonitorReapersTestCase{
-// 	MonitorReapersTestCase{Add, createTestReaper(reaper.NewReaperConfig(nil, "* * * * *", "testProject", "UUID_1"))},
-// 	MonitorReapersTestCase{Delete, nil},
-// 	MonitorReapersTestCase{Quit, nil},
-// 	MonitorReapersTestCase{Run, nil},
-// }
+var sweepReapersTestCases = []SweepReapersTestCase{
+	SweepReapersTestCase{Add, createTestReaper(reaper.NewReaperConfig(nil, "* * * * *", "testProject", "UUID_1")), ""},
+	SweepReapersTestCase{Delete, nil, "UUID"},
+	SweepReapersTestCase{Run, nil, ""},
+}
 
-// func TestMonitorReapers(t *testing.T) {
-// 	wg := &sync.WaitGroup{}
-// 	wg.Add(1)
+func TestMonitorReapers(t *testing.T) {
+	server := createServer(serverHandler)
+	defer server.Close()
 
-// 	wg.Done()
-// }
+	testClientOptions := getTestClientOptions(server)
+
+	for _, testCase := range sweepReapersTestCases {
+		testManager := NewReaperManager(context.Background(), testClientOptions...)
+
+		switch testCase.Type {
+		case Add:
+			testManager.AddReaper(testCase.Reaper)
+			if len(testManager.newReaper) == 0 {
+				t.Error("Reaper not added to channel")
+			}
+			testManager.sweepReapers()
+			if !testManager.isReaperMonitored(testCase.Reaper) {
+				t.Error("Reaper not added to monitored reapers")
+			}
+		case Delete:
+			testManager.DeleteReaper(testCase.UUID)
+			if len(testManager.deleteReaper) == 0 {
+				t.Error("Reaper to delete UUID not added to channel")
+			}
+			testManager.sweepReapers()
+		case Run:
+			if len(testManager.newReaper) > 0 || len(testManager.deleteReaper) > 0 || len(testManager.quit) > 0 {
+				t.Error("One of the manager channels is set")
+			}
+			testManager.sweepReapers()
+		}
+	}
+}
 
 type HandleDeleteTestCase struct {
 	UUID            string
@@ -119,9 +150,9 @@ func getTestReapers() []*reaper.Reaper {
 }
 
 func createTestReaper(config *reaperconfig.ReaperConfig) *reaper.Reaper {
-	reaper := reaper.NewReaper()
-	reaper.UpdateReaperConfig(config)
-	return reaper
+	testReaper := reaper.NewReaper()
+	testReaper.UpdateReaperConfig(config)
+	return testReaper
 }
 
 func areReaperListsEqual(reapersA, reapersB []*reaper.Reaper) bool {
@@ -134,4 +165,28 @@ func areReaperListsEqual(reapersA, reapersB []*reaper.Reaper) bool {
 		}
 	}
 	return true
+}
+
+func (manager *ReaperManager) isReaperMonitored(testReaper *reaper.Reaper) bool {
+	for _, monitoredReaper := range manager.Reapers {
+		if reflect.DeepEqual(monitoredReaper, testReaper) {
+			return true
+		}
+	}
+	return false
+}
+
+func createServer(handler http.HandlerFunc) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(handler))
+}
+
+func serverHandler(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(`{"success": true}`))
+}
+
+func getTestClientOptions(server *httptest.Server) []option.ClientOption {
+	return []option.ClientOption{
+		option.WithHTTPClient(server.Client()),
+		option.WithEndpoint(server.URL),
+	}
 }

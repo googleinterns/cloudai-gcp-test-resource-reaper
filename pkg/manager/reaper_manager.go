@@ -46,9 +46,9 @@ func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption)
 	return &ReaperManager{
 		ctx:           ctx,
 		clientOptions: clientOptions,
-		newReaper:     make(chan *reaper.Reaper),
-		deleteReaper:  make(chan string),
-		quit:          make(chan bool),
+		newReaper:     make(chan *reaper.Reaper, 3),
+		deleteReaper:  make(chan string, 3),
+		quit:          make(chan bool, 1),
 	}
 }
 
@@ -71,22 +71,32 @@ func (manager *ReaperManager) MonitorReapers(wg *sync.WaitGroup) {
 		case <-manager.quit:
 			log.Println("Quitting reaper manager")
 			return
-		case newReaper := <-manager.newReaper:
-			manager.Reapers = append(manager.Reapers, newReaper)
-			log.Printf("Added new reaper with UUID: %s", newReaper.UUID)
-		case reaperUUID := <-manager.deleteReaper:
-			deleteSuccess := manager.handleDeleteReaper(reaperUUID)
-			if deleteSuccess {
-				log.Printf("Reaper with UUID %s successfully deleted", reaperUUID)
-			} else {
-				log.Printf("Reaper with UUID %s unsuccessfully deleted", reaperUUID)
-			}
 		default:
-			for _, reaper := range manager.Reapers {
-				reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
-			}
+			manager.sweepReapers()
 		}
 		time.Sleep(time.Second)
+	}
+}
+
+// sweep handles the logic for a single sweep of all the reapers monitored
+// by the manager. Note that this does not handle top-levek manager operations
+// such as a shutdown.
+func (manager *ReaperManager) sweepReapers() {
+	select {
+	case newReaper := <-manager.newReaper:
+		manager.Reapers = append(manager.Reapers, newReaper)
+		log.Printf("Added new reaper with UUID: %s", newReaper.UUID)
+	case reaperUUID := <-manager.deleteReaper:
+		deleteSuccess := manager.handleDeleteReaper(reaperUUID)
+		if deleteSuccess {
+			log.Printf("Reaper with UUID %s successfully deleted", reaperUUID)
+		} else {
+			log.Printf("Reaper with UUID %s unsuccessfully deleted", reaperUUID)
+		}
+	default:
+		for _, reaper := range manager.Reapers {
+			reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
+		}
 	}
 }
 
