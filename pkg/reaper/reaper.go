@@ -186,10 +186,10 @@ func (reaper *Reaper) PrintWatchlist() {
 // NewReaperConfig constructs a new ReaperConfig.
 func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, projectID, uuid string) *reaperconfig.ReaperConfig {
 	return &reaperconfig.ReaperConfig{
-		Resources:  resources,
-		Schedule:   schedule,
-		ProjectId:  projectID,
-		Uuid:       uuid,
+		Resources: resources,
+		Schedule:  schedule,
+		ProjectId: projectID,
+		Uuid:      uuid,
 	}
 }
 

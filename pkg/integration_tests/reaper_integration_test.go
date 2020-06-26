@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
@@ -80,7 +81,9 @@ func TestReaperIntegration(t *testing.T) {
 		}
 	}
 
+	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 	reaper.SweepThroughResources(ctx)
+
 	expectedResource := "another-resource-1"
 	for _, watchedResource := range reaper.Watchlist {
 		if strings.Compare(watchedResource.Name, expectedResource) == 0 {
