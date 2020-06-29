@@ -22,47 +22,52 @@ var (
 )
 
 func TestAuth(t *testing.T) {
-	client := &GCSClient{}
-	err := client.Auth(context.Background())
+	bucketClient := &GCSBucketClient{}
+	err := bucketClient.Auth(context.Background())
 	if err != nil {
-		t.Errorf("GCS Auth failed with following error: %s", err.Error())
+		t.Errorf("GCS Bucket Auth failed with following error: %s", err.Error())
+	}
+	objectClient := &GCSObjectClient{}
+	err = objectClient.Auth(context.Background())
+	if err != nil {
+		t.Errorf("GCS Object Auth failed with following error: %s", err.Error())
 	}
 }
 
-func TestGetResources(t *testing.T) {
+func TestGetBucketResources(t *testing.T) {
 	server := utils.CreateServer(getResourcesHandler)
 	defer server.Close()
 
-	client := GCSClient{}
+	client := GCSBucketClient{}
 	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
 	config := reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us", "us-east1"}, "test", "supercclank", "@every 1m")
 	parsed, _ := client.GetResources("SampleProject1", config)
 	fmt.Println(parsed)
 }
 
-type DeleteResourceTestCase struct {
+type DeleteBucketResourceTestCase struct {
 	ProjectID string
 	Name      string
 	Expected  *utils.TestInstance
 }
 
-var deleteResourceTestCases = []DeleteResourceTestCase{
-	DeleteResourceTestCase{"SampleProject1", "test-instance-1", &utils.TestInstance{"test-instance-1", testTime, "US"}},
-	DeleteResourceTestCase{"SampleProject1", "test-instance-skip", &utils.TestInstance{"test-instance-skip", testTime, "NAM4"}},
-	DeleteResourceTestCase{"SampleProject1", "wrong-name", nil},
-	DeleteResourceTestCase{"SampleProject2", "another-test", &utils.TestInstance{"another-test", testTime, "NAM4"}},
-	DeleteResourceTestCase{"SampleProject2", "another-wrong-name", nil},
-	DeleteResourceTestCase{"SampleProject2", "", nil},
+var deleteBucketResourceTestCases = []DeleteBucketResourceTestCase{
+	DeleteBucketResourceTestCase{"SampleProject1", "test-instance-1", &utils.TestInstance{"test-instance-1", testTime, "US"}},
+	DeleteBucketResourceTestCase{"SampleProject1", "test-instance-skip", &utils.TestInstance{"test-instance-skip", testTime, "NAM4"}},
+	DeleteBucketResourceTestCase{"SampleProject1", "wrong-name", nil},
+	DeleteBucketResourceTestCase{"SampleProject2", "another-test", &utils.TestInstance{"another-test", testTime, "NAM4"}},
+	DeleteBucketResourceTestCase{"SampleProject2", "another-wrong-name", nil},
+	DeleteBucketResourceTestCase{"SampleProject2", "", nil},
 }
 
-func TestDeleteResource(t *testing.T) {
-	server := utils.CreateServer(deleteResourceHandler)
+func TestDeleteBucketResource(t *testing.T) {
+	server := utils.CreateServer(deleteBucketResourceHandler)
 	defer server.Close()
 
-	client := GCSClient{}
+	client := GCSBucketClient{}
 	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
 
-	for _, testCase := range deleteResourceTestCases {
+	for _, testCase := range deleteBucketResourceTestCases {
 		setupTestData()
 		deletedResource = nil
 		err := client.DeleteResource(testCase.ProjectID, resources.NewResource(testCase.Name, "TestZone", time.Now(), reaperconfig.ResourceType_GCS_BUCKET))
@@ -75,13 +80,21 @@ func TestDeleteResource(t *testing.T) {
 	}
 }
 
+func TestGetObjectResource(t *testing.T) {
+
+}
+
+func TestDeleteObjectResource(t *testing.T) {
+
+}
+
 func getResourcesHandler(w http.ResponseWriter, req *http.Request) {
 	projectID := req.URL.Query()["project"][0]
 	utils.SendResponse(w, testInstances[projectID])
 	// w.Write([]byte(`{"success": true}`))
 }
 
-func deleteResourceHandler(w http.ResponseWriter, req *http.Request) {
+func deleteBucketResourceHandler(w http.ResponseWriter, req *http.Request) {
 	bucketName := strings.Split(req.URL.Path, "/")[2]
 	for _, instances := range testInstances {
 		for _, instance := range instances {
