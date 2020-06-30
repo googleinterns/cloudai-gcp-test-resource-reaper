@@ -2,10 +2,7 @@ package gcs
 
 import (
 	"context"
-	"fmt"
 	"strings"
-
-	"errors"
 
 	"cloud.google.com/go/storage"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
@@ -14,7 +11,7 @@ import (
 )
 
 type gcsBaseClient struct {
-	Client *storage.Client
+	client *storage.Client
 	ctx    context.Context
 }
 
@@ -23,7 +20,7 @@ func (client *gcsBaseClient) Auth(ctx context.Context, opts ...option.ClientOpti
 	if err != nil {
 		return err
 	}
-	client.Client = authedClient
+	client.client = authedClient
 	client.ctx = ctx
 	return nil
 }
@@ -32,9 +29,13 @@ type GCSBucketClient struct {
 	*gcsBaseClient
 }
 
+func NewGCSBucketClient() *GCSBucketClient {
+	return &GCSBucketClient{&gcsBaseClient{}}
+}
+
 func (client *GCSBucketClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error) {
 	var instances []*resources.Resource
-	bucketIterator := client.Client.Buckets(client.ctx, projectID)
+	bucketIterator := client.client.Buckets(client.ctx, projectID)
 	for bucket, done := bucketIterator.Next(); done == nil; bucket, done = bucketIterator.Next() {
 		bucketZone := bucket.Location
 		for _, zone := range config.GetZones() {
@@ -53,44 +54,40 @@ func (client *GCSBucketClient) GetResources(projectID string, config *reaperconf
 }
 
 func (client *GCSBucketClient) DeleteResource(projectID string, resource *resources.Resource) error {
-	bucketHandle := client.Client.Bucket(resource.Name)
+	bucketHandle := client.client.Bucket(resource.Name)
 	err := bucketHandle.Delete(client.ctx)
 	return err
 }
 
-// Name filter for a GCSObject should be of the form [BucketName]:[ObjectNameRegex]
+// Zone for a GCSObject is the name of the bucket (bucket names have to be globally unique)
 type GCSObjectClient struct {
 	*gcsBaseClient
 }
 
+func NewGCSObjectClient() *GCSObjectClient {
+	return &GCSObjectClient{&gcsBaseClient{}}
+}
+
 func (client *GCSObjectClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error) {
 	var instances []*resources.Resource
-	bucketName, objectRegex, err := parseObjectName(config.GetNameFilter())
-	if err != nil {
-		return nil, err
-	}
-	bucketHandle := client.Client.Bucket(bucketName)
 
-	// https://pkg.go.dev/cloud.google.com/go/storage?tab=doc#Query
-	var query *storage.Query = nil
-	objectIterator := bucketHandle.Objects(client.ctx, query)
-	for object, done := objectIterator.Next(); done == nil; object, done = objectIterator.Next() {
-		fmt.Println("OBJECT: ", object.Name)
-		// fmt.Println(resources.ShouldAddResourceToWatchlist())
+	for _, bucket := range config.GetZones() {
+		bucketHandle := client.client.Bucket(bucket)
+		objectIterator := bucketHandle.Objects(client.ctx, nil)
+
+		for object, done := objectIterator.Next(); done == nil; object, done = objectIterator.Next() {
+			objectResource := resources.NewResource(object.Name, bucket, object.Created, reaperconfig.ResourceType_GCS_OBJECT)
+			if resources.ShouldAddResourceToWatchlist(objectResource, config.GetNameFilter(), config.GetSkipFilter()) {
+				instances = append(instances, objectResource)
+			}
+		}
 	}
-	fmt.Println(objectRegex)
 	return instances, nil
 }
 
 func (client *GCSObjectClient) DeleteResource(projectID string, resource *resources.Resource) error {
-	return nil
-}
-
-// Assuming name is of the format BucketName:ObjectNameRegex
-func parseObjectName(name string) (string, string, error) {
-	splitName := strings.Split(name, ":")
-	if len(splitName) != 2 {
-		return "", "", errors.New("gcs object name filter should be formatted in the form [bucketName]:[objectNameRegex]")
-	}
-	return splitName[0], splitName[1], nil
+	bucketHandle := client.client.Bucket(resource.Zone)
+	objectHandle := bucketHandle.Object(resource.Name)
+	err := objectHandle.Delete(client.ctx)
+	return err
 }

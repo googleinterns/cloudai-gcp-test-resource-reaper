@@ -2,18 +2,20 @@ package gcs
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/utils"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 )
+
+// Maybe look here for testing:
+// https://github.com/googleapis/google-cloud-go-testing
+// https://github.com/googleapis/google-cloud-go/issues/592#issuecomment-406099221
 
 var (
 	testInstances   map[string][]utils.TestInstance
@@ -22,28 +24,28 @@ var (
 )
 
 func TestAuth(t *testing.T) {
-	bucketClient := &GCSBucketClient{}
-	err := bucketClient.Auth(context.Background())
+	bucketClient := NewGCSBucketClient()
+	err := bucketClient.Auth(context.TODO())
 	if err != nil {
 		t.Errorf("GCS Bucket Auth failed with following error: %s", err.Error())
 	}
-	objectClient := &GCSObjectClient{}
-	err = objectClient.Auth(context.Background())
+	objectClient := NewGCSObjectClient()
+	err = objectClient.Auth(context.TODO())
 	if err != nil {
 		t.Errorf("GCS Object Auth failed with following error: %s", err.Error())
 	}
 }
 
-func TestGetBucketResources(t *testing.T) {
-	server := utils.CreateServer(getResourcesHandler)
-	defer server.Close()
+// func TestGetBucketResources(t *testing.T) {
+// 	server := utils.CreateServer(getResourcesHandler)
+// 	defer server.Close()
 
-	client := GCSBucketClient{}
-	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
-	config := reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us", "us-east1"}, "test", "supercclank", "@every 1m")
-	parsed, _ := client.GetResources("SampleProject1", config)
-	fmt.Println(parsed)
-}
+// 	client := GCSBucketClient{}
+// 	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
+// 	config := reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us", "us-east1"}, "test", "supercclank", "@every 1m")
+// 	parsed, _ := client.GetResources("SampleProject1", config)
+// 	fmt.Println(parsed)
+// }
 
 type DeleteBucketResourceTestCase struct {
 	ProjectID string
@@ -64,7 +66,7 @@ func TestDeleteBucketResource(t *testing.T) {
 	server := utils.CreateServer(deleteBucketResourceHandler)
 	defer server.Close()
 
-	client := GCSBucketClient{}
+	client := NewGCSBucketClient()
 	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
 
 	for _, testCase := range deleteBucketResourceTestCases {
