@@ -18,9 +18,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients/gce"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients/gcs"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
-	gce "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -43,13 +44,12 @@ type Client interface {
 func NewClient(resourceType reaperconfig.ResourceType) (Client, error) {
 	switch resourceType {
 	case reaperconfig.ResourceType_GCE_VM:
-		return &GCEClient{}, nil
+		return gce.NewGCEClient(), nil
+	case reaperconfig.ResourceType_GCS_BUCKET:
+		return gcs.NewGCSBucketClient(), nil
+	case reaperconfig.ResourceType_GCS_OBJECT:
+		return gcs.NewGCSObjectClient(), nil
 	default:
 		return nil, errors.New("Unsupported Resource Type")
 	}
-}
-
-// Client for a Compute Engine Resource.
-type GCEClient struct {
-	Client *gce.Service
 }
