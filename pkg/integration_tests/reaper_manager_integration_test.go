@@ -30,7 +30,10 @@ func TestReaperManagerIntegration(t *testing.T) {
 		t.Skip("Skipping reaper integration test in short mode")
 	}
 
-	projectID, _ := ReadConfigFile()
+	projectID, _, err := ReadConfigFile()
+	if err != nil {
+		t.Error(err.Error())
+	}
 
 	reaperManager := manager.NewReaperManager(context.Background())
 	wg := &sync.WaitGroup{}

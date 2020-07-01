@@ -16,7 +16,6 @@ package integration_tests
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 )
 
@@ -29,17 +28,17 @@ type TestConfig struct {
 
 // ReadConfigFile reads the config.json file, and returns the ProjectID and accessToken
 // specified in the file.
-func ReadConfigFile() (string, string) {
+func ReadConfigFile() (string, string, error) {
 	var configData TestConfig
 	jsonConfigFile, err := os.Open("config.json")
 	defer jsonConfigFile.Close()
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 	configParser := json.NewDecoder(jsonConfigFile)
 	configParser.Decode(&configData)
 
 	projectID := configData.ProjectID
 	accessToken := configData.AccessToken
-	return projectID, accessToken
+	return projectID, accessToken, nil
 }

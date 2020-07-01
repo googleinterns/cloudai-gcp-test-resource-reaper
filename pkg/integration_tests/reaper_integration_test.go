@@ -55,7 +55,10 @@ func TestReaperIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping reaper integration test in short mode")
 	}
-	setup(true)
+	err := setup(true)
+	if err != nil {
+		t.Error(err.Error())
+	}
 	resources := []*reaperconfig.ResourceConfig{
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
@@ -93,11 +96,16 @@ func TestReaperIntegration(t *testing.T) {
 	t.Errorf("Resource %s not in watchlist", expectedResource)
 }
 
-func setup(shouldCreateResources bool) {
-	projectID, accessToken = ReadConfigFile()
+func setup(shouldCreateResources bool) error {
+	var err error
+	projectID, accessToken, err = ReadConfigFile()
+	if err != nil {
+		return err
+	}
 	if shouldCreateResources {
 		createTestResources()
 	}
+	return nil
 }
 
 func createTestResources() {
