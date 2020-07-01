@@ -32,7 +32,7 @@ func TestReaperManagerIntegration(t *testing.T) {
 
 	projectID, _, err := ReadConfigFile()
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 
 	reaperManager := manager.NewReaperManager(context.Background())
@@ -48,7 +48,10 @@ func TestReaperManagerIntegration(t *testing.T) {
 	reaperConfig := reaper.NewReaperConfig(resources, "@every 1m", projectID, "TestUUID")
 
 	newReaper := reaper.NewReaper()
-	newReaper.UpdateReaperConfig(reaperConfig)
+	err = newReaper.UpdateReaperConfig(reaperConfig)
+	if err != nil {
+		t.Error(err)
+	}
 	newReaper.GetResources(context.Background())
 	newReaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 

@@ -57,7 +57,7 @@ func TestReaperIntegration(t *testing.T) {
 	}
 	err := setup(true)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 	resources := []*reaperconfig.ResourceConfig{
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
@@ -67,7 +67,10 @@ func TestReaperIntegration(t *testing.T) {
 	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", projectID, "UUID")
 
 	reaper := reaper.NewReaper()
-	reaper.UpdateReaperConfig(reaperConfig)
+	err = reaper.UpdateReaperConfig(reaperConfig)
+	if err != nil {
+		t.Error(err)
+	}
 	reaper.GetResources(ctx)
 
 	var expectedWatchedResources = []string{"test-resource-1", "test-resource-2", "test-resource-3", "another-resource-1", "another-resource-2"}
