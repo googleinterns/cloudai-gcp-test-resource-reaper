@@ -16,14 +16,18 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"strings"
 	"sync"
 	"time"
 
+	empty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 )
 
 // ReaperManager is a controller for all running reapers.
@@ -149,4 +153,52 @@ func (manager *ReaperManager) GetReaper(uuid string) *reaper.Reaper {
 		}
 	}
 	return nil
+}
+
+type reaperManagerServer struct {
+	Manager *ReaperManager
+}
+
+func StartServer(address, port string) {
+	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", address, port))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server := grpc.NewServer()
+	reaperconfig.RegisterReaperManagerServer(server, &reaperManagerServer{})
+	server.Serve(lis)
+}
+
+func (s *reaperManagerServer) AddReaper(ctx context.Context, config *reaperconfig.ReaperConfig) (*reaperconfig.Reaper, error) {
+	return nil, nil
+}
+
+func (s *reaperManagerServer) UpdateReaper(ctx context.Context, config *reaperconfig.ReaperConfig) (*reaperconfig.Reaper, error) {
+	return nil, nil
+}
+
+func (s *reaperManagerServer) DeleteReaper(ctx context.Context, config *reaperconfig.Reaper) (*reaperconfig.Reaper, error) {
+	return nil, nil
+}
+
+func (s *reaperManagerServer) GetRunningReapers(ctx context.Context, req *empty.Empty) (*reaperconfig.ReaperCluster, error) {
+	runningReapers := s.Manager.Reapers
+	reaperCluster := &reaperconfig.ReaperCluster{}
+	// for _, reaper :
+	return nil, nil
+}
+
+func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
+	if s.Manager == nil {
+		s.Manager = NewReaperManager(ctx)
+	}
+	return nil, nil
+}
+
+func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
+	if s.Manager != nil {
+		s.Manager = nil
+	}
+	return nil, nil
 }

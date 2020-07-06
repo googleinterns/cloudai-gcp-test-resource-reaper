@@ -14,8 +14,25 @@
 
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package reaperconfig;
 option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig";
+
+service ReaperManager {
+    rpc AddReaper(ReaperConfig) returns (Reaper) {};
+    rpc UpdateReaper(ReaperConfig) returns (Reaper) {};
+    rpc DeleteReaper(Reaper) returns (Reaper) {};
+
+    // List?
+    rpc GetRunningReapers(google.protobuf.Empty) returns (ReaperCluster) {};
+    rpc StartManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
+    rpc ShutdownManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
+}
+
+message Reaper {
+    string uuid = 1;
+}
 
 /*
 A reaper cluster is for running multiple reapers within the same GKE cluster,
