@@ -337,10 +337,11 @@ func createResourceConfig(resourceType reaperconfig.ResourceType, nameFilter, sk
 }
 
 func createTestReaper(projectID, schedule string, watchlist ...*resources.WatchedResource) *Reaper {
+	parsedSchedule, _ := parseSchedule(schedule)
 	return &Reaper{
 		UUID:      "TestUUID",
 		ProjectID: projectID,
 		Watchlist: watchlist,
-		Schedule:  parseSchedule(schedule),
+		Schedule:  parsedSchedule,
 	}
 }

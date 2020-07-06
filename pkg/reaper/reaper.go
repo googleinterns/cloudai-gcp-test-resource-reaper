@@ -111,12 +111,15 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
-func (reaper *Reaper) UpdateReaperConfig(config *reaperconfig.ReaperConfig) {
+func (reaper *Reaper) UpdateReaperConfig(config *reaperconfig.ReaperConfig) error {
 	reaper.config = config
 
 	reaper.ProjectID = config.GetProjectId()
 	reaper.UUID = config.GetUuid()
-	reaper.Schedule = parseSchedule(config.GetSchedule())
+
+	parsedSchedule, err := parseSchedule(config.GetSchedule())
+	reaper.Schedule = parsedSchedule
+	return err
 }
 
 // GetResources gets all the GCP resources defined in the ReaperConfig, and adds them to the
@@ -256,11 +259,10 @@ func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
 // parseSchedule parses the cron time string that defined the reaper's
 // run schedule, and either returns a Schedule struct, or nil if the
 // schedule string is malformed.
-func parseSchedule(schedule string) cron.Schedule {
+func parseSchedule(schedule string) (cron.Schedule, error) {
 	parsedSchedule, err := cron.ParseStandard(schedule)
 	if err != nil {
-		log.Println(err)
-		return nil
+		return nil, err
 	}
-	return parsedSchedule
+	return parsedSchedule, nil
 }
