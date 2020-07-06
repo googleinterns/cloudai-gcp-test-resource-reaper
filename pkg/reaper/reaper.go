@@ -23,6 +23,7 @@ import (
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"github.com/robfig/cron/v3"
 	"google.golang.org/api/option"
 )
 
@@ -32,7 +33,29 @@ type Reaper struct {
 	UUID      string
 	ProjectID string
 	Watchlist []*resources.WatchedResource
-	Schedule  string
+	Schedule  cron.Schedule
+
+	config  *reaperconfig.ReaperConfig
+	lastRun time.Time
+	*Clock
+}
+
+type Clock struct {
+	instant time.Time
+}
+
+func (c *Clock) Now() time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	return c.instant
+}
+
+func (reaper *Reaper) FreezeClock(instant time.Time) {
+	if reaper.Clock == nil {
+		reaper.Clock = &Clock{}
+	}
+	reaper.Clock.instant = instant
 }
 
 // NewReaper constructs a new reaper.
@@ -40,10 +63,24 @@ func NewReaper() *Reaper {
 	return &Reaper{}
 }
 
-// RunThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
+// RunOnSchedule updates the reaper's watchlist and runs a sweep if the current time is equal to or after
+// the next schedule run time.
+func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
+	nextRun := reaper.Schedule.Next(reaper.lastRun)
+	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
+		log.Printf("Running reaper with UUID: %s\n", reaper.UUID)
+		reaper.GetResources(ctx, clientOptions...)
+		reaper.SweepThroughResources(ctx, clientOptions...)
+		reaper.lastRun = reaper.Clock.Now()
+		return true
+	}
+	return false
+}
+
+// SweepThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
 // determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
 // Watchlist is updated accordingly.
-func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var updatedWatchlist []*resources.WatchedResource
 
 	for _, watchedResource := range reaper.Watchlist {
@@ -74,21 +111,25 @@ func (reaper *Reaper) RunThroughResources(ctx context.Context, clientOptions ...
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.
-func (reaper *Reaper) UpdateReaperConfig(ctx context.Context, config *reaperconfig.ReaperConfig, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) UpdateReaperConfig(config *reaperconfig.ReaperConfig) error {
+	reaper.config = config
+
+	reaper.ProjectID = config.GetProjectId()
+	reaper.UUID = config.GetUuid()
+
+	parsedSchedule, err := parseSchedule(config.GetSchedule())
+	reaper.Schedule = parsedSchedule
+	return err
+}
+
+// GetResources gets all the GCP resources defined in the ReaperConfig, and adds them to the
+// reaper's Watchlist. Note, if the same resource is referenced by multiple ResourceConfigs,
+// then the TTL of that resource will be the one that deletes the resource the latest.
+func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.ClientOption) {
 	var newWatchlist []*resources.WatchedResource
 	newWatchedResources := make(map[string]map[string]*resources.WatchedResource)
 
-	if len(config.GetProjectId()) > 0 {
-		reaper.ProjectID = config.GetProjectId()
-	}
-	if len(config.GetUuid()) > 0 {
-		reaper.UUID = config.GetUuid()
-	}
-	if len(config.GetSchedule()) > 0 {
-		reaper.Schedule = config.GetSchedule()
-	}
-
-	resourceConfigs := config.GetResources()
+	resourceConfigs := reaper.config.GetResources()
 	for _, resourceConfig := range resourceConfigs {
 		resourceType := resourceConfig.GetResourceType()
 
@@ -146,13 +187,12 @@ func (reaper *Reaper) PrintWatchlist() {
 }
 
 // NewReaperConfig constructs a new ReaperConfig.
-func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, skipFilter, projectID, uuid string) *reaperconfig.ReaperConfig {
+func NewReaperConfig(resources []*reaperconfig.ResourceConfig, schedule, projectID, uuid string) *reaperconfig.ReaperConfig {
 	return &reaperconfig.ReaperConfig{
-		Resources:  resources,
-		Schedule:   schedule,
-		SkipFilter: skipFilter,
-		ProjectId:  projectID,
-		Uuid:       uuid,
+		Resources: resources,
+		Schedule:  schedule,
+		ProjectId: projectID,
+		Uuid:      uuid,
 	}
 }
 
@@ -214,4 +254,15 @@ func maxTTL(resourceA, resourceB *resources.WatchedResource) (string, error) {
 	} else {
 		return resourceB.TTL, nil
 	}
+}
+
+// parseSchedule parses the cron time string that defined the reaper's
+// run schedule, and either returns a Schedule struct, or nil if the
+// schedule string is malformed.
+func parseSchedule(schedule string) (cron.Schedule, error) {
+	parsedSchedule, err := cron.ParseStandard(schedule)
+	if err != nil {
+		return nil, err
+	}
+	return parsedSchedule, nil
 }

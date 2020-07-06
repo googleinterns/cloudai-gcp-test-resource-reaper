@@ -1,11 +1,23 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_test(
     name = "go_default_test",
-    srcs = ["reaper_integration_test.go"],
+    srcs = [
+        "reaper_integration_test.go",
+        "reaper_manager_integration_test.go",
+    ],
+    data = ["config.json"],
+    embed = [":go_default_library"],
     deps = [
+        "//pkg/manager:go_default_library",
         "//pkg/reaper:go_default_library",
         "//proto:go_default_library",
     ],
-    data = ["config.json"],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["test_utils.go"],
+    importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/integration_tests",
+    visibility = ["//visibility:public"],
 )

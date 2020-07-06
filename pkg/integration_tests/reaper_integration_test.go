@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration_test
+package integration_tests
 
 import (
 	"context"
@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -56,16 +55,23 @@ func TestReaperIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping reaper integration test in short mode")
 	}
-	setup(true)
+	err := setup(true)
+	if err != nil {
+		t.Error(err)
+	}
 	resources := []*reaperconfig.ResourceConfig{
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "9 7 * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another", "", "1 * * * *"),
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b"}, "another-resource-1", "", "* * * 10 *"),
 	}
-	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", "SkipFilter", projectID, "UUID")
+	reaperConfig := reaper.NewReaperConfig(resources, "TestSchedule", projectID, "UUID")
 
 	reaper := reaper.NewReaper()
-	reaper.UpdateReaperConfig(ctx, reaperConfig)
+	err = reaper.UpdateReaperConfig(reaperConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	reaper.GetResources(ctx)
 
 	var expectedWatchedResources = []string{"test-resource-1", "test-resource-2", "test-resource-3", "another-resource-1", "another-resource-2"}
 	for _, expectedResource := range expectedWatchedResources {
@@ -82,7 +88,7 @@ func TestReaperIntegration(t *testing.T) {
 	}
 
 	reaper.FreezeTime(time.Now().AddDate(0, 1, 0))
-	reaper.RunThroughResources(ctx)
+	reaper.SweepThroughResources(ctx)
 
 	expectedResource := "another-resource-1"
 	for _, watchedResource := range reaper.Watchlist {
@@ -93,30 +99,16 @@ func TestReaperIntegration(t *testing.T) {
 	t.Errorf("Resource %s not in watchlist", expectedResource)
 }
 
-type TestConfig struct {
-	ProjectID   string `json:"projectId"`
-	AccessToken string `json:"accessToken"`
-}
-
-func setup(shouldCreateResources bool) {
-	readConfigFile()
+func setup(shouldCreateResources bool) error {
+	var err error
+	projectID, accessToken, err = ReadConfigFile()
+	if err != nil {
+		return err
+	}
 	if shouldCreateResources {
 		createTestResources()
 	}
-}
-
-func readConfigFile() {
-	var configData TestConfig
-	jsonConfigFile, err := os.Open("config.json")
-	defer jsonConfigFile.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	configParser := json.NewDecoder(jsonConfigFile)
-	configParser.Decode(&configData)
-
-	projectID = configData.ProjectID
-	accessToken = configData.AccessToken
+	return nil
 }
 
 func createTestResources() {

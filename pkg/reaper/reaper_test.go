@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ var (
 
 type ReaperRunTestCase struct {
 	Watchlist []*resources.WatchedResource
-	Expected  Reaper
+	Expected  *Reaper
 }
 
 var reaperRunTestCases = []ReaperRunTestCase{
@@ -52,7 +53,7 @@ var reaperRunTestCases = []ReaperRunTestCase{
 			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "59 * * * *"),
 		},
-		createTestReaper("testProject", []*resources.WatchedResource{
+		createTestReaper("testProject", "* * * * *", []*resources.WatchedResource{
 			resources.NewWatchedResource(resources.NewResource("TestFuture", "testZone", lateTime, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
 		}...),
 	},
@@ -60,7 +61,7 @@ var reaperRunTestCases = []ReaperRunTestCase{
 		[]*resources.WatchedResource{
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
 		},
-		createTestReaper("testProject", []*resources.WatchedResource{
+		createTestReaper("testProject", "* * * * *", []*resources.WatchedResource{
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "1 * * * *"),
 		}...),
 	},
@@ -69,40 +70,77 @@ var reaperRunTestCases = []ReaperRunTestCase{
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_1", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "59 * * * *"),
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_2", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "30 * * * *"),
 		},
-		createTestReaper("testProject", []*resources.WatchedResource{
+		createTestReaper("testProject", "* * * * *", []*resources.WatchedResource{
 			resources.NewWatchedResource(resources.NewResource("TestTwoMinuteAgo_2", "testZone", twoMinutesAgo, reaperconfig.ResourceType_GCE_VM), "30 * * * *"),
 		}...),
 	},
 }
 
-func TestRunThroughResources(t *testing.T) {
+func TestSweepThroughResources(t *testing.T) {
 	server := createServer(deleteComputeEngineResourceHandler)
 	defer server.Close()
 
 	testClientOptions := getTestClientOptions(server)
 
 	for _, testCase := range reaperRunTestCases {
-		testReaper := createTestReaper("testProject", testCase.Watchlist...)
+		testReaper := createTestReaper("testProject", "* * * * *", testCase.Watchlist...)
 		testReaper.FreezeTime(currentTime)
 
-		testReaper.RunThroughResources(testContext, testClientOptions...)
+		testReaper.SweepThroughResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
-			t.Errorf("Reaper not updated correctly")
+			t.Errorf("Reaper not updated correctly after sweep through watched resources")
 		}
 	}
 }
 
-type UpdateReaperTestCase struct {
+type UpdateReaperConfigTestCase struct {
 	ReaperConfig *reaperconfig.ReaperConfig
-	Expected     Reaper
+	Expected     *Reaper
 }
 
-var updateReaperTestCases = []UpdateReaperTestCase{
-	UpdateReaperTestCase{
+var updateReaperConfigTestCases = []UpdateReaperConfigTestCase{
+	UpdateReaperConfigTestCase{
+		createReaperConfig("SampleProject", "* * * * *"),
+		createTestReaper("SampleProject", "* * * * *"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("NewProjectID", "* * 10 * *"),
+		createTestReaper("NewProjectID", "* * 10 * *"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("AnotherProjectID", "59 23 31 12 7"),
+		createTestReaper("AnotherProjectID", "59 23 31 12 7"),
+	},
+	UpdateReaperConfigTestCase{
+		createReaperConfig("ProjectIDAgain", "@every 1h30m"),
+		createTestReaper("ProjectIDAgain", "@every 1h30m"),
+	},
+}
+
+func TestUpdateReaperConfig(t *testing.T) {
+	testReaper := &Reaper{}
+	for _, testCase := range updateReaperConfigTestCases {
+		testReaper.UpdateReaperConfig(testCase.ReaperConfig)
+		if strings.Compare(testReaper.ProjectID, testCase.Expected.ProjectID) != 0 {
+			t.Errorf("Expected project id: %s, got: %s", testCase.Expected.ProjectID, testReaper.ProjectID)
+		}
+		if !reflect.DeepEqual(testReaper.Schedule, testCase.Expected.Schedule) {
+			t.Error("Schedule not updated correctly")
+		}
+	}
+}
+
+type GetResourcesTestCase struct {
+	ReaperConfig *reaperconfig.ReaperConfig
+	Expected     *Reaper
+}
+
+var getResourcesTestCases = []GetResourcesTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1"),
 		),
-		createTestReaper("sampleProject", resources.CreateWatchlist(
+		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
 				resources.NewResource("TestName", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
 				resources.NewResource("TestingYetAnotherOne", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
@@ -110,22 +148,22 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Another", "* * * * *", "testZone1"),
 		),
-		createTestReaper("sampleProject", resources.CreateWatchlist(
+		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
 				resources.NewResource("TestName", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
 			},
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "", "* * * * *", "testZone1", "testZone2"),
 		),
-		createTestReaper("sampleProject", resources.CreateWatchlist(
+		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
 				resources.NewResource("TestName", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
 				resources.NewResource("TestingYetAnotherOne", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
@@ -134,11 +172,11 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Test", "Testing", "* * * * *", "testZone1", "testZone2"),
 		),
-		createTestReaper("sampleProject", resources.CreateWatchlist(
+		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
 				resources.NewResource("TestName", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
 				resources.NewResource("TestThis", "testZone2", currentTime, reaperconfig.ResourceType_GCE_VM),
@@ -146,11 +184,11 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 			"* * * * *",
 		)...),
 	},
-	UpdateReaperTestCase{
+	GetResourcesTestCase{
 		createReaperConfig(
-			"sampleProject", "", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
+			"sampleProject", "* * * * *", createResourceConfig(reaperconfig.ResourceType_GCE_VM, "Another", "", "* * * * *", "testZone1", "testZone2"),
 		),
-		createTestReaper("sampleProject", resources.CreateWatchlist(
+		createTestReaper("sampleProject", "* * * * *", resources.CreateWatchlist(
 			[]*resources.Resource{
 				resources.NewResource("AnotherName", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
 				resources.NewResource("TestingYetAnotherOne", "testZone1", currentTime, reaperconfig.ResourceType_GCE_VM),
@@ -161,18 +199,47 @@ var updateReaperTestCases = []UpdateReaperTestCase{
 	},
 }
 
-func TestUpdateReaperConfig(t *testing.T) {
+func TestGetResources(t *testing.T) {
 	server := createServer(getComputeEngineResourcesHandler)
 	defer server.Close()
 
 	testClientOptions := getTestClientOptions(server)
-	testReaper := Reaper{}
+	testReaper := &Reaper{}
 
 	setupTestData()
-	for _, testCase := range updateReaperTestCases {
-		testReaper.UpdateReaperConfig(testContext, testCase.ReaperConfig, testClientOptions...)
+	for _, testCase := range getResourcesTestCases {
+		testReaper.config = testCase.ReaperConfig
+		testReaper.ProjectID = testCase.ReaperConfig.GetProjectId()
+
+		testReaper.GetResources(testContext, testClientOptions...)
 		if !areWatchlistsEqual(testReaper, testCase.Expected) {
-			t.Errorf("Reaper not updated correctly")
+			t.Errorf("GetResources did not get correct resources based off config")
+		}
+	}
+}
+
+type RunScheduleTestCase struct {
+	Schedule string
+	LastRun  time.Time
+	Expected bool
+}
+
+var runScheduleTestCases = []RunScheduleTestCase{
+	RunScheduleTestCase{"* * * * *", time.Time{}, true},
+	RunScheduleTestCase{"* * * 10 *", time.Time{}, true},
+	RunScheduleTestCase{"* 11 * * *", currentTime.Add(-1 * time.Hour), false},
+	RunScheduleTestCase{"* 10 * * *", currentTime.Add(-1 * time.Hour), true},
+	RunScheduleTestCase{"@every 1m", currentTime.Add(-2 * time.Minute), true},
+	RunScheduleTestCase{"@every 1h", currentTime.Add(-1 * time.Hour), true},
+}
+
+func TestRunOnSchedule(t *testing.T) {
+	for _, testCase := range runScheduleTestCases {
+		reaper := createTestReaper("sampleProject", testCase.Schedule)
+		reaper.FreezeClock(currentTime)
+		reaper.lastRun = testCase.LastRun
+		if result := reaper.RunOnSchedule(testContext); result != testCase.Expected {
+			t.Errorf("Reaper did run: %v, Should reaper run: %v", result, testCase.Expected)
 		}
 	}
 }
@@ -203,7 +270,7 @@ func getComputeEngineResourcesHandler(w http.ResponseWriter, req *http.Request) 
 }
 
 // Only checking if names are equal since test is setup to have unique names
-func areWatchlistsEqual(result, expected Reaper) bool {
+func areWatchlistsEqual(result, expected *Reaper) bool {
 	if len(result.Watchlist) != len(expected.Watchlist) {
 		return false
 	}
@@ -250,13 +317,12 @@ func setupTestData() {
 	}
 }
 
-func createReaperConfig(projectID, skipFilter string, resources ...*reaperconfig.ResourceConfig) *reaperconfig.ReaperConfig {
+func createReaperConfig(projectID, schedule string, resources ...*reaperconfig.ResourceConfig) *reaperconfig.ReaperConfig {
 	return &reaperconfig.ReaperConfig{
-		Resources:  resources,
-		Schedule:   "TestSchedule",
-		SkipFilter: skipFilter,
-		ProjectId:  projectID,
-		Uuid:       "TestUUID",
+		Resources: resources,
+		Schedule:  schedule,
+		ProjectId: projectID,
+		Uuid:      "TestUUID",
 	}
 }
 
@@ -270,11 +336,12 @@ func createResourceConfig(resourceType reaperconfig.ResourceType, nameFilter, sk
 	}
 }
 
-func createTestReaper(projectID string, watchlist ...*resources.WatchedResource) Reaper {
-	return Reaper{
+func createTestReaper(projectID, schedule string, watchlist ...*resources.WatchedResource) *Reaper {
+	parsedSchedule, _ := parseSchedule(schedule)
+	return &Reaper{
 		UUID:      "TestUUID",
 		ProjectID: projectID,
 		Watchlist: watchlist,
-		Schedule:  "TestSchedule",
+		Schedule:  parsedSchedule,
 	}
 }

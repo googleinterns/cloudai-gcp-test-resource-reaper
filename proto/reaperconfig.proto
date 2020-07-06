@@ -37,16 +37,12 @@ message ReaperConfig {
 
     // Frequency to run reaper in cron time string format.
     string schedule = 2;
-    
-    // Regex of names of resources to exclude. Note that the skip filter wins
-    // over a name filter if they both match.
-    string skip_filter = 3;
-    
+        
     // GCP Project ID.
-    string project_id = 4;
+    string project_id = 3;
     
     //  Unique ID of the reaper.
-    string uuid = 5;
+    string uuid = 4;
 }
 
 /*
