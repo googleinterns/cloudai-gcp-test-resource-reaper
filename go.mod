@@ -10,5 +10,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	go.opencensus.io v0.22.3
 	google.golang.org/api v0.26.0
+	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.24.0
 )

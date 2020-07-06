@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gcs
 
 import (
@@ -36,17 +50,6 @@ func TestAuth(t *testing.T) {
 	}
 }
 
-// func TestGetBucketResources(t *testing.T) {
-// 	server := utils.CreateServer(getResourcesHandler)
-// 	defer server.Close()
-
-// 	client := GCSBucketClient{}
-// 	client.Auth(context.TODO(), utils.GetTestOptions(server)...)
-// 	config := reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us", "us-east1"}, "test", "supercclank", "@every 1m")
-// 	parsed, _ := client.GetResources("SampleProject1", config)
-// 	fmt.Println(parsed)
-// }
-
 type DeleteBucketResourceTestCase struct {
 	ProjectID string
 	Name      string
@@ -82,25 +85,10 @@ func TestDeleteBucketResource(t *testing.T) {
 	}
 }
 
-func TestGetObjectResource(t *testing.T) {
-
-}
-
-func TestDeleteObjectResource(t *testing.T) {
-
-}
-
-func getResourcesHandler(w http.ResponseWriter, req *http.Request) {
-	projectID := req.URL.Query()["project"][0]
-	utils.SendResponse(w, testInstances[projectID])
-	// w.Write([]byte(`{"success": true}`))
-}
-
 func deleteBucketResourceHandler(w http.ResponseWriter, req *http.Request) {
 	bucketName := strings.Split(req.URL.Path, "/")[2]
 	for _, instances := range testInstances {
 		for _, instance := range instances {
-			// fmt.Println(instance.Name, bucketName)
 			if strings.Compare(instance.Name, bucketName) == 0 {
 				deletedResource = &utils.TestInstance{instance.Name, instance.CreationTimestamp, instance.Zone}
 			}

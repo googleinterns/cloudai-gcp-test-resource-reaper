@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gcs
 
 import (
@@ -10,11 +24,13 @@ import (
 	"google.golang.org/api/option"
 )
 
+// gcsBaseClient is common between GCS Buckets and GCS Objects.
 type gcsBaseClient struct {
 	client *storage.Client
 	ctx    context.Context
 }
 
+// Auth authenticates the GCS client for both GCS Buckets and Objects.
 func (client *gcsBaseClient) Auth(ctx context.Context, opts ...option.ClientOption) error {
 	authedClient, err := storage.NewClient(ctx, opts...)
 	if err != nil {
@@ -25,14 +41,17 @@ func (client *gcsBaseClient) Auth(ctx context.Context, opts ...option.ClientOpti
 	return nil
 }
 
+// GCSBucketClient is a client for GCS Buckets.
 type GCSBucketClient struct {
 	*gcsBaseClient
 }
 
+// NewGCSBucketClient creates a new GCS Bucket client.
 func NewGCSBucketClient() *GCSBucketClient {
 	return &GCSBucketClient{&gcsBaseClient{}}
 }
 
+// GetResources gets the GCS Bucket resources that match the given ResourceConfig.
 func (client *GCSBucketClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error) {
 	var instances []*resources.Resource
 	bucketIterator := client.client.Buckets(client.ctx, projectID)
@@ -53,21 +72,25 @@ func (client *GCSBucketClient) GetResources(projectID string, config *reaperconf
 	return instances, nil
 }
 
+// DeleteResource deletes the given GCS Bucket.
 func (client *GCSBucketClient) DeleteResource(projectID string, resource *resources.Resource) error {
 	bucketHandle := client.client.Bucket(resource.Name)
 	err := bucketHandle.Delete(client.ctx)
 	return err
 }
 
-// Zone for a GCSObject is the name of the bucket (bucket names have to be globally unique)
+// GCSObjectClient is a client for GCS objects. Note that the Zone
+// for a GCS Object is the GCS Bucket name.
 type GCSObjectClient struct {
 	*gcsBaseClient
 }
 
+// NewGCSObjectClient creates a new GCS Object client.
 func NewGCSObjectClient() *GCSObjectClient {
 	return &GCSObjectClient{&gcsBaseClient{}}
 }
 
+// GetResources gets the GCS Object resources that match the given ResourceConfig.
 func (client *GCSObjectClient) GetResources(projectID string, config *reaperconfig.ResourceConfig) ([]*resources.Resource, error) {
 	var instances []*resources.Resource
 
@@ -85,6 +108,7 @@ func (client *GCSObjectClient) GetResources(projectID string, config *reaperconf
 	return instances, nil
 }
 
+// DeleteResource deletes the given GCS Object.
 func (client *GCSObjectClient) DeleteResource(projectID string, resource *resources.Resource) error {
 	bucketHandle := client.client.Bucket(resource.Zone)
 	objectHandle := bucketHandle.Object(resource.Name)
