@@ -182,11 +182,13 @@ func (s *reaperManagerServer) DeleteReaper(ctx context.Context, config *reaperco
 	return nil, nil
 }
 
-func (s *reaperManagerServer) GetRunningReapers(ctx context.Context, req *empty.Empty) (*reaperconfig.ReaperCluster, error) {
-	runningReapers := s.Manager.Reapers
+func (s *reaperManagerServer) ListRunningReapers(ctx context.Context, req *empty.Empty) (*reaperconfig.ReaperCluster, error) {
 	reaperCluster := &reaperconfig.ReaperCluster{}
-	// for _, reaper :
-	return nil, nil
+	for _, watchedReaper := range s.Manager.Reapers {
+		reaper := &reaperconfig.Reaper{Uuid: watchedReaper.UUID}
+		reaperCluster.Reapers = append(reaperCluster.Reapers, reaper)
+	}
+	return reaperCluster, nil
 }
 
 func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {

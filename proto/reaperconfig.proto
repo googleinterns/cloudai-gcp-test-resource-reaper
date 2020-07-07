@@ -23,9 +23,7 @@ service ReaperManager {
     rpc AddReaper(ReaperConfig) returns (Reaper) {};
     rpc UpdateReaper(ReaperConfig) returns (Reaper) {};
     rpc DeleteReaper(Reaper) returns (Reaper) {};
-
-    // List?
-    rpc GetRunningReapers(google.protobuf.Empty) returns (ReaperCluster) {};
+    rpc ListRunningReapers(google.protobuf.Empty) returns (ReaperCluster) {};
     rpc StartManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
     rpc ShutdownManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
 }
@@ -40,7 +38,7 @@ allowing for ease of organization and monitoring of all running reapers.
 */
 message ReaperCluster {
     // List of reapers that are running in the GKE cluster.
-    repeated ReaperConfig configs = 1;
+    repeated Reaper reapers = 1;
 }
 
 /*
