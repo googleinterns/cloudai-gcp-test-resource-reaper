@@ -57,21 +57,13 @@ func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption)
 	}
 }
 
-// func (manager *ReaperManager) Start() {
-// 	wg := &sync.WaitGroup{}
-// 	wg.Add(1)
-// 	go manager.MonitorReapers(wg)
-// 	wg.Wait()
-// }
-
 // MonitorReapers is the controller for all running reapers. It continuously
 // cycles between all running reapers to run a sweep. The method also checks
 // whether a new reaper has been added to the manager, or if the the manager
 // should be stopped. Note that MonitorReapers should be called in a separate
 // goroutine.
 func (manager *ReaperManager) MonitorReapers() {
-	// wg *sync.WaitGroup
-	// defer wg.Done()wg *sync.WaitGroup
+	log.Println("Starting Reaper Manager")
 	for {
 		select {
 		case <-manager.quit:
@@ -184,11 +176,12 @@ type reaperManagerServer struct {
 }
 
 func StartServer(address, port string) {
-	lis, err := net.Listen("tcp", fmt.Sprintf("%v:%v", address, port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	log.Printf("Starting gRPC Server on %s:%s\n", address, port)
 	server := grpc.NewServer()
 	reaperconfig.RegisterReaperManagerServer(server, &reaperManagerServer{})
 	server.Serve(lis)
@@ -235,7 +228,7 @@ func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty
 		s.Manager = NewReaperManager(ctx)
 		go s.Manager.MonitorReapers()
 	}
-	return nil, nil
+	return new(empty.Empty), nil
 }
 
 func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
@@ -244,12 +237,5 @@ func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Em
 	}
 	s.Manager.Shutdown()
 	s.Manager = nil
-	return nil, nil
+	return new(empty.Empty), nil
 }
-
-// func (manager *ReaperManager) Start() {
-// 	wg := &sync.WaitGroup{}
-// 	wg.Add(1)
-// 	go manager.MonitorReapers(wg)
-// 	wg.Wait()
-// }
