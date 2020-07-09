@@ -30,34 +30,41 @@ func StartClient(ctx context.Context, address, port string) *ReaperClient {
 	return client
 }
 
-func (c *ReaperClient) AddReaper(config *reaperconfig.ReaperConfig) {
+func (c *ReaperClient) AddReaper(config *reaperconfig.ReaperConfig) (string, error) {
 	res, err := c.client.AddReaper(c.ctx, config)
-	fmt.Println(res, err)
+	return res.Uuid, err
 }
 
-func (c *ReaperClient) UpdateReaper(config *reaperconfig.ReaperConfig) {
+func (c *ReaperClient) UpdateReaper(config *reaperconfig.ReaperConfig) (string, error) {
 	res, err := c.client.UpdateReaper(c.ctx, config)
-	fmt.Println(res, err)
+	return res.Uuid, err
 }
 
-func (c *ReaperClient) DeleteReaper(uuid string) {
-	res, err := c.client.DeleteReaper(c.ctx, &reaperconfig.Reaper{Uuid: uuid})
-	fmt.Println(res, err)
+func (c *ReaperClient) DeleteReaper(uuid string) error {
+	_, err := c.client.DeleteReaper(c.ctx, &reaperconfig.Reaper{Uuid: uuid})
+	return err
 }
 
-func (c *ReaperClient) ListRunningReapers() {
+func (c *ReaperClient) ListRunningReapers() ([]string, error) {
 	res, err := c.client.ListRunningReapers(c.ctx, new(empty.Empty))
-	fmt.Println(res, err)
+	if err != nil {
+		return nil, err
+	}
+	var runningReapers []string
+	for _, reaper := range res.Reapers {
+		runningReapers = append(runningReapers, reaper.Uuid)
+	}
+	return runningReapers, nil
 }
 
-func (c *ReaperClient) StartManager() {
-	res, err := c.client.StartManager(c.ctx, new(empty.Empty))
-	fmt.Println(res, err)
+func (c *ReaperClient) StartManager() error {
+	_, err := c.client.StartManager(c.ctx, new(empty.Empty))
+	return err
 }
 
-func (c *ReaperClient) ShutdownManager() {
-	res, err := c.client.ShutdownManager(c.ctx, new(empty.Empty))
-	fmt.Println(res, err)
+func (c *ReaperClient) ShutdownManager() error {
+	_, err := c.client.ShutdownManager(c.ctx, new(empty.Empty))
+	return err
 }
 
 func (c *ReaperClient) Close() {

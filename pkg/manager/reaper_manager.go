@@ -224,16 +224,17 @@ func (s *reaperManagerServer) ListRunningReapers(ctx context.Context, req *empty
 }
 
 func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
-	if s.Manager == nil {
-		s.Manager = NewReaperManager(ctx)
-		go s.Manager.MonitorReapers()
+	if s.Manager != nil {
+		return new(empty.Empty), fmt.Errorf("reaper manager already running")
 	}
+	s.Manager = NewReaperManager(ctx)
+	go s.Manager.MonitorReapers()
 	return new(empty.Empty), nil
 }
 
 func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
 	if s.Manager == nil {
-		return nil, nil
+		return new(empty.Empty), fmt.Errorf("reaper manager already shutdown")
 	}
 	s.Manager.Shutdown()
 	s.Manager = nil
