@@ -104,7 +104,11 @@ func (manager *ReaperManager) AddReaper(newReaper *reaper.Reaper) {
 // AddReaperFromConfig adds a reaper to the manager from a ReaperConfig.
 func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.ReaperConfig) {
 	newReaper := reaper.NewReaper()
-	newReaper.UpdateReaperConfig(newReaperConfig)
+	err := newReaper.UpdateReaperConfig(newReaperConfig)
+	if err != nil {
+		log.Printf("Error adding reaper: %v\n", err)
+		return
+	}
 	manager.newReaper <- newReaper
 }
 

@@ -8,14 +8,16 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 )
 
 type reaperManagerServer struct {
-	Manager *ReaperManager
+	Manager       *ReaperManager
+	clientOptions []option.ClientOption
 }
 
-func StartServer(address, port string) {
+func StartServer(address, port string, clientOptions ...option.ClientOption) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
 	if err != nil {
 		log.Fatal(err)
@@ -83,7 +85,7 @@ func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty
 	if s.Manager != nil {
 		return new(empty.Empty), fmt.Errorf("reaper manager already running")
 	}
-	s.Manager = NewReaperManager(ctx)
+	s.Manager = NewReaperManager(ctx, s.clientOptions...)
 	go s.Manager.MonitorReapers()
 	return new(empty.Empty), nil
 }
