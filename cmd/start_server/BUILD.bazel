@@ -5,7 +5,7 @@ go_library(
     srcs = ["main.go"],
     importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/cmd/start_server",
     visibility = ["//visibility:private"],
-    deps = ["//pkg/manager:go_default_test"],
+    deps = ["//pkg/manager:go_default_library"],
 )
 
 go_binary(
