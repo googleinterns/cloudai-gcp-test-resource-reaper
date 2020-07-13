@@ -14,6 +14,10 @@ go_library(
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
         "@org_golang_google_api//option:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_test(
     name = "go_default_test",
     srcs = [
         "manager_server_test.go",
