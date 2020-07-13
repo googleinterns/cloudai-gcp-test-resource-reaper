@@ -132,19 +132,9 @@ func TestShutdownManager(t *testing.T) {
 	defer conn.Close()
 	client := reaperconfig.NewReaperManagerClient(conn)
 
-	_, err = client.ShutdownManager(testContext, new(empty.Empty))
-	if err == nil {
-		t.Fatalf("Manager should not be running, and throw an error when shutting down")
-	}
-
 	client.StartManager(testContext, new(empty.Empty))
 	_, err = client.ShutdownManager(testContext, new(empty.Empty))
 	if err != nil {
 		t.Fatalf("Failed to shutdown manager: %v", err)
-	}
-
-	_, err = client.ShutdownManager(testContext, new(empty.Empty))
-	if err == nil {
-		t.Fatalf("Manager should not be running, and throw an error when shutting down")
 	}
 }
