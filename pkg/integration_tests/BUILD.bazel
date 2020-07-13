@@ -13,6 +13,7 @@ go_test(
         "reaper_integration_test.go",
         "reaper_manager_integration_test.go",
     ],
+    data = ["config.json"],
     embed = [":go_default_library"],
     deps = [
         "//pkg/manager:go_default_library",
