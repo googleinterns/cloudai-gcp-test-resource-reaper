@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package manager
 
 import (
@@ -12,11 +26,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+// reaperManagerServer is the gRPC server for interacting with the reaper
+// manager.
 type reaperManagerServer struct {
 	Manager       *ReaperManager
 	clientOptions []option.ClientOption
 }
 
+// StartServer starts the gRPC server listing on the given address and port.
 func StartServer(address, port string, clientOptions ...option.ClientOption) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
 	if err != nil {
@@ -29,6 +46,8 @@ func StartServer(address, port string, clientOptions ...option.ClientOption) {
 	server.Serve(lis)
 }
 
+// AddReaper adds a new reaper to the manager with the given config, and returns the UUID if the
+// add was successful.
 func (s *reaperManagerServer) AddReaper(ctx context.Context, config *reaperconfig.ReaperConfig) (*reaperconfig.Reaper, error) {
 	if s.Manager == nil {
 		return nil, fmt.Errorf("Reaper manager not started")
@@ -42,6 +61,8 @@ func (s *reaperManagerServer) AddReaper(ctx context.Context, config *reaperconfi
 	return &reaperconfig.Reaper{Uuid: config.GetUuid()}, nil
 }
 
+// UpdateReaper updates the reaper with the UUID given in the config with the data in the config, and returns
+// the UUID if the update was successful.
 func (s *reaperManagerServer) UpdateReaper(ctx context.Context, config *reaperconfig.ReaperConfig) (*reaperconfig.Reaper, error) {
 	if s.Manager == nil {
 		return nil, fmt.Errorf("Reaper manager not started")
@@ -55,6 +76,7 @@ func (s *reaperManagerServer) UpdateReaper(ctx context.Context, config *reaperco
 	return &reaperconfig.Reaper{Uuid: config.GetUuid()}, nil
 }
 
+// DeleteReaper deletes the reaper with the given UUID, and returns the UUID if the delete was successful.
 func (s *reaperManagerServer) DeleteReaper(ctx context.Context, reaperToDelete *reaperconfig.Reaper) (*reaperconfig.Reaper, error) {
 	if s.Manager == nil {
 		return nil, fmt.Errorf("Reaper manager not started")
@@ -68,6 +90,7 @@ func (s *reaperManagerServer) DeleteReaper(ctx context.Context, reaperToDelete *
 	return &reaperconfig.Reaper{Uuid: reaperToDelete.GetUuid()}, nil
 }
 
+// ListRunningReapers returns a list of UUIDs of all the running reapers.
 func (s *reaperManagerServer) ListRunningReapers(ctx context.Context, req *empty.Empty) (*reaperconfig.ReaperCluster, error) {
 	if s.Manager == nil {
 		return nil, fmt.Errorf("Reaper manager not started")
@@ -81,15 +104,18 @@ func (s *reaperManagerServer) ListRunningReapers(ctx context.Context, req *empty
 	return reaperCluster, nil
 }
 
+// StartManager begins the reaper manager process. This must be called before any reaper operations
+// are invokved.
 func (s *reaperManagerServer) StartManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
 	if s.Manager != nil {
 		return new(empty.Empty), fmt.Errorf("reaper manager already running")
 	}
-	s.Manager = NewReaperManager(ctx, s.clientOptions...)
+	s.Manager = NewReaperManager(context.Background(), s.clientOptions...)
 	go s.Manager.MonitorReapers()
 	return new(empty.Empty), nil
 }
 
+// ShutdownManager ends the reaper manager process. This deletes all currently running reapers.
 func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
 	if s.Manager == nil {
 		return new(empty.Empty), fmt.Errorf("reaper manager already shutdown")

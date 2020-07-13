@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package manager
 
 import (
@@ -90,79 +104,6 @@ func TestAddReaper(t *testing.T) {
 		time.Sleep(time.Second * 2)
 	}
 }
-
-type UpdateReaperTestCase struct {
-	Config   *reaperconfig.ReaperConfig
-	Expected *reaperconfig.Reaper
-}
-
-var updateReaperTestCases = []UpdateReaperTestCase{
-	UpdateReaperTestCase{},
-}
-
-func TestUpdateReaper(t *testing.T) {
-	conn, err := grpc.DialContext(testContext, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
-	}
-	defer conn.Close()
-	client := reaperconfig.NewReaperManagerClient(conn)
-
-	for _, testCase := range updateReaperTestCases {
-		resp, err := client.UpdateReaper(testContext, testCase.Config)
-		if err != nil {
-			t.Fatalf("Error")
-		}
-		if resp != testCase.Expected {
-			t.Fatalf("Wrong")
-		}
-	}
-
-}
-
-type DeleteReaperTestCase struct {
-	UUID     string
-	Expected *reaperconfig.Reaper
-}
-
-var deleteReaperTestCases = []DeleteReaperTestCase{
-	DeleteReaperTestCase{},
-}
-
-func TestDeleteReaper(t *testing.T) {
-	conn, err := grpc.DialContext(testContext, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
-	}
-	defer conn.Close()
-	client := reaperconfig.NewReaperManagerClient(conn)
-
-	for _, testCase := range deleteReaperTestCases {
-		testReaper := &reaperconfig.Reaper{Uuid: testCase.UUID}
-		resp, err := client.DeleteReaper(testContext, testReaper)
-		if err != nil {
-			t.Fatalf("Error")
-		}
-		if resp != testCase.Expected {
-			t.Fatalf("Wrong")
-		}
-	}
-}
-
-var listReapersTestCases = [][]string{}
-
-// func TestListRunningReapers(t *testing.T) {
-// 	conn, err := grpc.DialContext(testContext, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
-// 	if err != nil {
-// 		t.Fatalf("Failed to dial bufnet: %v", err)
-// 	}
-// 	defer conn.Close()
-// 	client := reaperconfig.NewReaperManagerClient(conn)
-
-// 	for _, uuids := range listReapersTestCases {
-
-// 	}
-// }
 
 func TestStartManager(t *testing.T) {
 	conn, err := grpc.DialContext(testContext, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
