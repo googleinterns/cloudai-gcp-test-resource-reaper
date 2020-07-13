@@ -12,24 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clients
+package gce
 
 import (
 	"context"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
-	gce "google.golang.org/api/compute/v1"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 )
 
+// Client for a Compute Engine Resource.
+type GCEClient struct {
+	Client *compute.Service
+}
+
+func NewGCEClient() *GCEClient {
+	return &GCEClient{}
+}
+
 // Auth authenticates the client to access Compute Engine resources. See
 // https://pkg.go.dev/google.golang.org/api/option?tab=doc for more
 // information about passing options.
 func (client *GCEClient) Auth(ctx context.Context, opts ...option.ClientOption) error {
-	authedClient, err := gce.NewService(ctx, opts...)
+	authedClient, err := compute.NewService(ctx, opts...)
 	if err != nil {
 		return err
 	}

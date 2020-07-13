@@ -75,5 +75,6 @@ GCP resources that are supported for the reaper to monitor.
 enum ResourceType {
     GCE_VM = 0;
     GCS_BUCKET = 1;
-    BIGQUERY = 2;
+    GCS_OBJECT = 2;
+    BIGQUERY = 3;
 }
