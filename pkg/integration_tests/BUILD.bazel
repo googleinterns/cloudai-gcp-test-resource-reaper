@@ -9,7 +9,7 @@ go_test(
     data = ["config.json"],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/manager:go_default_library",
+        "//pkg/manager:go_default_test",
         "//pkg/reaper:go_default_library",
         "//proto:go_default_library",
     ],
