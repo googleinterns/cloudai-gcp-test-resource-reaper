@@ -21,6 +21,7 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -35,6 +36,10 @@ type reaperManagerServer struct {
 
 // StartServer starts the gRPC server listing on the given address and port.
 func StartServer(address, port string, clientOptions ...option.ClientOption) {
+	if err := logger.CreateLogger(); err != nil {
+		log.Fatal(err)
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
 	if err != nil {
 		log.Fatal(err)
