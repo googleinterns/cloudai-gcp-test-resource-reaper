@@ -17,10 +17,10 @@ package reaper
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"github.com/robfig/cron/v3"
@@ -68,7 +68,7 @@ func NewReaper() *Reaper {
 func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
-		log.Printf("Running reaper with UUID: %s\n", reaper.UUID)
+		logger.Logf("Running reaper with UUID: %s\n", reaper.UUID)
 		reaper.GetResources(ctx, clientOptions...)
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
@@ -87,7 +87,7 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 		if watchedResource.IsReadyForDeletion() {
 			resourceClient, err := getAuthedClient(ctx, reaper, watchedResource.Type, clientOptions...)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err)
 				continue
 			}
 
@@ -96,10 +96,10 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 					"%s client failed to delete resource %s with the following error: %s",
 					watchedResource.Type.String(), watchedResource.Name, err.Error(),
 				)
-				log.Println(deleteError)
+				logger.Error(deleteError)
 				continue
 			}
-			log.Printf(
+			logger.Logf(
 				"Deleted %s resource %s in zone %s\n",
 				watchedResource.Type.String(), watchedResource.Name, watchedResource.Zone,
 			)
@@ -135,7 +135,7 @@ func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.
 
 		resourceClient, err := getAuthedClient(ctx, reaper, resourceType, clientOptions...)
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 			continue
 		}
 
@@ -145,7 +145,7 @@ func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.
 				"%s client failed to get resources with the following error: %s",
 				resourceType.String(), err.Error(),
 			)
-			log.Println(getResourcesError)
+			logger.Error(getResourcesError)
 			continue
 		}
 		watchedResources := resources.CreateWatchlist(filteredResources, resourceConfig.GetTtl())
@@ -159,7 +159,7 @@ func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.
 			if _, alreadyWatched := newWatchedResources[resource.Zone][resource.Name]; alreadyWatched {
 				newTTL, err := maxTTL(resource, newWatchedResources[resource.Zone][resource.Name])
 				if err != nil {
-					log.Println(err)
+					logger.Error(err)
 					continue
 				}
 				newWatchedResources[resource.Zone][resource.Name].TTL = newTTL

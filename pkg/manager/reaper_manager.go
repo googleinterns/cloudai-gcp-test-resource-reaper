@@ -17,10 +17,10 @@ package manager
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
@@ -56,11 +56,11 @@ func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption)
 // should be stopped. Note that MonitorReapers should be called in a separate
 // goroutine.
 func (manager *ReaperManager) MonitorReapers() {
-	log.Println("Starting Reaper Manager")
+	logger.Log("Starting Reaper Manager")
 	for {
 		select {
 		case <-manager.quit:
-			log.Println("Quitting reaper manager")
+			logger.Log("Quitting reaper manager")
 			return
 		default:
 			manager.sweepReapers()
@@ -76,18 +76,18 @@ func (manager *ReaperManager) sweepReapers() {
 	select {
 	case newReaper := <-manager.newReaper:
 		manager.Reapers = append(manager.Reapers, newReaper)
-		log.Printf("Added new reaper with UUID: %s", newReaper.UUID)
+		logger.Logf("Added new reaper with UUID: %s", newReaper.UUID)
 	case reaperUUID := <-manager.deleteReaper:
 		deleteSuccess := manager.handleDeleteReaper(reaperUUID)
 		if deleteSuccess {
-			log.Printf("Reaper with UUID %s successfully deleted", reaperUUID)
+			logger.Logf("Reaper with UUID %s successfully deleted", reaperUUID)
 		} else {
-			log.Printf("Reaper with UUID %s does not exist", reaperUUID)
+			logger.Logf("Reaper with UUID %s does not exist", reaperUUID)
 		}
 	case newReaperConfig := <-manager.updateReaper:
 		err := manager.handleUpdateReaper(newReaperConfig)
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 	default:
 		for _, reaper := range manager.Reapers {
@@ -106,7 +106,7 @@ func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.
 	newReaper := reaper.NewReaper()
 	err := newReaper.UpdateReaperConfig(newReaperConfig)
 	if err != nil {
-		log.Printf("Error adding reaper: %v\n", err)
+		logger.Logf("Error adding reaper: %v\n", err)
 		return
 	}
 	manager.newReaper <- newReaper

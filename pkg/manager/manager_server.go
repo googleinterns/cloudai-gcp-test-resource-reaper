@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
@@ -42,13 +43,15 @@ func StartServer(address, port string, clientOptions ...option.ClientOption) {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
+		os.Exit(1)
 	}
 
-	log.Printf("Starting gRPC Server on %s:%s\n", address, port)
+	logger.Logf("Starting gRPC Server on %s:%s\n", address, port)
 	server := grpc.NewServer()
 	reaperconfig.RegisterReaperManagerServer(server, &reaperManagerServer{})
 	server.Serve(lis)
+	logger.Log("Shutting down gRPC Server")
 }
 
 // AddReaper adds a new reaper to the manager with the given config, and returns the UUID if the

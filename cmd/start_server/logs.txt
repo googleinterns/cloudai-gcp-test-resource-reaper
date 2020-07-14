@@ -1,0 +1,8 @@
+2020/07/14 11:57:39 logger.go:71: Starting gRPC Server on localhost:8000
+2020/07/14 11:58:09 logger.go:64: Starting Reaper Manager
+2020/07/14 11:58:52 logger.go:71: Added new reaper with UUID: test-reaper
+2020/07/14 11:58:53 logger.go:71: Running reaper with UUID: test-reaper
+2020/07/14 11:59:53 logger.go:71: Running reaper with UUID: test-reaper
+2020/07/14 12:00:53 logger.go:71: Running reaper with UUID: test-reaper
+2020/07/14 12:01:53 logger.go:71: Running reaper with UUID: test-reaper
+2020/07/14 12:02:53 logger.go:71: Running reaper with UUID: test-reaper

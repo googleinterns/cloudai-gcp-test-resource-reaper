@@ -22,15 +22,15 @@ func CreateLogger() error {
 }
 
 func Log(v ...interface{}) {
-	logger.Log()
+	logger.Log(v...)
 }
 
 func Logf(format string, v ...interface{}) {
-	logger.Logf(format, v)
+	logger.Logf(format, v...)
 }
 
 func Error(v ...interface{}) {
-	logger.Error(v)
+	logger.Error(v...)
 }
 
 func AddCloudLogger(ctx context.Context, projectID, loggerName string) error {
@@ -47,7 +47,7 @@ func NewLogger() (*Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
+	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime)
 	return &Logger{Logger: fileLogger}, nil
 }
 
@@ -70,14 +70,14 @@ func (l *Logger) Log(v ...interface{}) {
 func (l *Logger) Logf(format string, v ...interface{}) {
 	l.Logger.Printf(format, v...)
 	if l.CloudLogger != nil {
-		l.CloudLogger.Logf(format, v)
+		l.CloudLogger.Logf(format, v...)
 	}
 }
 
 func (l *Logger) Error(v ...interface{}) {
 	l.Logger.Println(v...)
 	if l.CloudLogger != nil {
-		l.CloudLogger.Error(v)
+		l.CloudLogger.Error(v...)
 	}
 }
 
