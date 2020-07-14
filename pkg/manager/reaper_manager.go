@@ -106,7 +106,7 @@ func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.
 	newReaper := reaper.NewReaper()
 	err := newReaper.UpdateReaperConfig(newReaperConfig)
 	if err != nil {
-		logger.Logf("Error adding reaper: %v\n", err)
+		logger.Error(fmt.Errorf("Error adding reaper: %v\n", err))
 		return
 	}
 	manager.newReaper <- newReaper

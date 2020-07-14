@@ -17,7 +17,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -36,22 +35,19 @@ type reaperManagerServer struct {
 }
 
 // StartServer starts the gRPC server listing on the given address and port.
-func StartServer(address, port string, clientOptions ...option.ClientOption) {
-	if err := logger.CreateLogger(); err != nil {
-		log.Fatal(err)
-	}
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
+func StartServer(port string, clientOptions ...option.ClientOption) {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		logger.Error(err)
 		os.Exit(1)
 	}
 
-	logger.Logf("Starting gRPC Server on %s:%s\n", address, port)
+	logger.Logf("------------------ Starting gRPC Server on :%s ------------------\n", port)
+	defer logger.Log("------------------ Shutting down gRPC Server ------------------")
+
 	server := grpc.NewServer()
 	reaperconfig.RegisterReaperManagerServer(server, &reaperManagerServer{})
 	server.Serve(lis)
-	logger.Log("Shutting down gRPC Server")
 }
 
 // AddReaper adds a new reaper to the manager with the given config, and returns the UUID if the

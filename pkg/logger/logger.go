@@ -30,7 +30,14 @@ func Logf(format string, v ...interface{}) {
 }
 
 func Error(v ...interface{}) {
+	fmt.Println(v)
 	logger.Error(v...)
+}
+
+func Close() {
+	if logger.CloudLogger != nil {
+		logger.CloudLogger.Close()
+	}
 }
 
 func AddCloudLogger(ctx context.Context, projectID, loggerName string) error {
@@ -63,7 +70,7 @@ func (l *Logger) AddCloudLogger(ctx context.Context, projectID, loggerName strin
 func (l *Logger) Log(v ...interface{}) {
 	l.Logger.Println(v...)
 	if l.CloudLogger != nil {
-		l.CloudLogger.Log(v)
+		l.CloudLogger.Log(v...)
 	}
 }
 
