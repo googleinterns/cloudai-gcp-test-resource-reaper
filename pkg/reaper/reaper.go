@@ -17,6 +17,7 @@ package reaper
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/clients"
@@ -71,7 +72,7 @@ func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option
 		logger.Logf("Running reaper with UUID: %s\n", reaper.UUID)
 		reaper.GetResources(ctx, clientOptions...)
 
-		logger.Logf("Reaper %s sweeping through the following resources: ")
+		logger.Logf("Reaper %s sweeping through the following resources: %s", reaper.UUID, reaper.WatchlistString())
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
 		return true
@@ -179,13 +180,17 @@ func (reaper *Reaper) GetResources(ctx context.Context, clientOptions ...option.
 	reaper.Watchlist = newWatchlist
 }
 
-// PrintWatchlist neatly prints the reaper's Watchlist.
-func (reaper *Reaper) PrintWatchlist() {
-	fmt.Print("Watchlist: ")
+// WatchlistString returns a near sting of the reaper's Watchlist.
+func (reaper *Reaper) WatchlistString() string {
+	var watchlistBuidler strings.Builder
 	for _, resource := range reaper.Watchlist {
-		fmt.Printf("%s in %s, ", resource.Name, resource.Zone)
+		watchlistBuidler.WriteString(fmt.Sprintf("%s in %s, ", resource.Name, resource.Zone))
 	}
-	fmt.Print("\n")
+	watchlist := watchlistBuidler.String()
+	if len(watchlist) > 0 {
+		watchlist = watchlist[:len(watchlist)-2]
+	}
+	return watchlist
 }
 
 // NewReaperConfig constructs a new ReaperConfig.
