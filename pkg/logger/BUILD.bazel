@@ -2,7 +2,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    data = ["logs.txt"],
     srcs = ["logger.go"],
     importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger",
     visibility = ["//visibility:public"],

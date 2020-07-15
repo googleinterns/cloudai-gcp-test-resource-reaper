@@ -10,91 +10,89 @@ import (
 	"cloud.google.com/go/logging"
 )
 
-// Instead of Global
-// https://pkg.go.dev/golang.org/x/tools/internal/memoize?tab=doc
-
-var logger *Logger
-
-func CreateLogger() error {
-	var err error
-	logger, err = NewLogger()
-	return err
-}
-
-func Log(v ...interface{}) {
-	logger.Log(v...)
-}
-
-func Logf(format string, v ...interface{}) {
-	logger.Logf(format, v...)
-}
-
-func Error(v ...interface{}) {
-	fmt.Println(v)
-	logger.Error(v...)
-}
-
-func Close() {
-	if logger.CloudLogger != nil {
-		logger.CloudLogger.Close()
-	}
-}
-
-func AddCloudLogger(ctx context.Context, projectID, loggerName string) error {
-	return logger.AddCloudLogger(ctx, projectID, loggerName)
-}
-
+// Logger handles writing local logs to a file and cloud logs to Stackdriver.
 type Logger struct {
 	*CloudLogger
 	*log.Logger
 }
 
-func NewLogger() (*Logger, error) {
-	logFile, err := os.OpenFile("logs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		return nil, err
-	}
-	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime)
-	return &Logger{Logger: fileLogger}, nil
-}
+var logger *Logger
 
-func (l *Logger) AddCloudLogger(ctx context.Context, projectID, loggerName string) error {
-	cloudLogger, err := CreateCloudLogger(ctx, projectID, loggerName)
+// CreateLogger initializes the logger for the server. The logs will be written to a local
+// file called logs.txt.
+func CreateLogger() error {
+	logFile, err := os.OpenFile("logs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
-	l.CloudLogger = cloudLogger
+	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime)
+	logger = &Logger{Logger: fileLogger}
 	return nil
 }
 
-func (l *Logger) Log(v ...interface{}) {
-	l.Logger.Println(v...)
-	if l.CloudLogger != nil {
-		l.CloudLogger.Log(v...)
+// Log outputs to the necessary logs. Arguments are handled in the manner of fmt.Println.
+func Log(v ...interface{}) {
+	logger.log(v...)
+}
+
+// Logf takes a format string and message and writes it to the necessary logs. Arguments are
+// handled in the manner of fmt.Printf.
+func Logf(format string, v ...interface{}) {
+	logger.logf(format, v...)
+}
+
+// Error outputs an error to the necessary logs.
+func Error(v ...interface{}) {
+	logger.error(v...)
+}
+
+// Close closes the logger.
+func Close() {
+	if logger.CloudLogger != nil {
+		logger.CloudLogger.closeLogger()
 	}
 }
 
-func (l *Logger) Logf(format string, v ...interface{}) {
+// AddCloudLogger adds stackdriver logging to the logger in the given project and log name.
+func AddCloudLogger(ctx context.Context, projectID, loggerName string) error {
+	cloudLogger, err := createCloudLogger(ctx, projectID, loggerName)
+	if err != nil {
+		return err
+	}
+	logger.CloudLogger = cloudLogger
+	return nil
+
+}
+
+func (l *Logger) log(v ...interface{}) {
+	l.Logger.Println(v...)
+	if l.CloudLogger != nil {
+		l.CloudLogger.log(v...)
+	}
+}
+
+func (l *Logger) logf(format string, v ...interface{}) {
 	l.Logger.Printf(format, v...)
 	if l.CloudLogger != nil {
-		l.CloudLogger.Logf(format, v...)
+		l.CloudLogger.logf(format, v...)
 	}
 }
 
-func (l *Logger) Error(v ...interface{}) {
+func (l *Logger) error(v ...interface{}) {
 	l.Logger.Println(v...)
 	if l.CloudLogger != nil {
-		l.CloudLogger.Error(v...)
+		l.CloudLogger.error(v...)
 	}
 }
 
+// CloudLogger handles writing logs to stackdriver.
 type CloudLogger struct {
 	*logging.Logger
 	*logging.Client
 	mux *sync.Mutex
 }
 
-func CreateCloudLogger(ctx context.Context, projectID, loggerName string) (*CloudLogger, error) {
+func createCloudLogger(ctx context.Context, projectID, loggerName string) (*CloudLogger, error) {
 	logClient, err := logging.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -106,7 +104,7 @@ func CreateCloudLogger(ctx context.Context, projectID, loggerName string) (*Clou
 	}, nil
 }
 
-func (l *CloudLogger) Log(v ...interface{}) {
+func (l *CloudLogger) log(v ...interface{}) {
 	l.mux.Lock()
 	defer logger.mux.Unlock()
 
@@ -115,7 +113,7 @@ func (l *CloudLogger) Log(v ...interface{}) {
 	)
 }
 
-func (l *CloudLogger) Logf(format string, v ...interface{}) {
+func (l *CloudLogger) logf(format string, v ...interface{}) {
 	l.mux.Lock()
 	defer logger.mux.Unlock()
 
@@ -124,7 +122,7 @@ func (l *CloudLogger) Logf(format string, v ...interface{}) {
 	)
 }
 
-func (l *CloudLogger) Error(v ...interface{}) {
+func (l *CloudLogger) error(v ...interface{}) {
 	l.mux.Lock()
 	defer logger.mux.Unlock()
 
@@ -136,6 +134,6 @@ func (l *CloudLogger) Error(v ...interface{}) {
 	)
 }
 
-func (l *CloudLogger) Close() {
+func (l *CloudLogger) closeLogger() {
 	l.Client.Close()
 }

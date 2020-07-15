@@ -70,6 +70,8 @@ func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
 		logger.Logf("Running reaper with UUID: %s\n", reaper.UUID)
 		reaper.GetResources(ctx, clientOptions...)
+
+		logger.Logf("Reaper %s sweeping through the following resources: ")
 		reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
 		return true
