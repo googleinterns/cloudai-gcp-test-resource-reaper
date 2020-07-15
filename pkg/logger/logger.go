@@ -26,8 +26,9 @@ import (
 
 // Logger handles writing local logs to a file and cloud logs to Stackdriver.
 type Logger struct {
-	*CloudLogger
 	*log.Logger
+	*CloudLogger
+	mux *sync.Mutex
 }
 
 var logger *Logger
@@ -40,24 +41,34 @@ func CreateLogger() error {
 		return err
 	}
 	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime)
-	logger = &Logger{Logger: fileLogger}
+	logger = &Logger{
+		Logger:      fileLogger,
+		CloudLogger: nil,
+		mux:         &sync.Mutex{},
+	}
 	return nil
 }
 
 // Log outputs to the necessary logs. Arguments are handled in the manner of fmt.Println.
 func Log(v ...interface{}) {
+	logger.mux.Lock()
 	logger.log(v...)
+	logger.mux.Unlock()
 }
 
 // Logf takes a format string and message and writes it to the necessary logs. Arguments are
 // handled in the manner of fmt.Printf.
 func Logf(format string, v ...interface{}) {
+	logger.mux.Lock()
 	logger.logf(format, v...)
+	logger.mux.Unlock()
 }
 
 // Error outputs an error to the necessary logs.
 func Error(v ...interface{}) {
+	logger.mux.Lock()
 	logger.error(v...)
+	logger.mux.Unlock()
 }
 
 // Close closes the logger.
@@ -102,7 +113,6 @@ func (l *Logger) error(v ...interface{}) {
 type CloudLogger struct {
 	*logging.Logger
 	*logging.Client
-	mux *sync.Mutex
 }
 
 func createCloudLogger(ctx context.Context, projectID, loggerName string) (*CloudLogger, error) {
@@ -113,32 +123,22 @@ func createCloudLogger(ctx context.Context, projectID, loggerName string) (*Clou
 	return &CloudLogger{
 		Logger: logClient.Logger(loggerName),
 		Client: logClient,
-		mux:    &sync.Mutex{},
 	}, nil
 }
 
 func (l *CloudLogger) log(v ...interface{}) {
-	l.mux.Lock()
-	defer logger.mux.Unlock()
-
 	l.Logger.Log(
 		logging.Entry{Payload: fmt.Sprintln(v...)},
 	)
 }
 
 func (l *CloudLogger) logf(format string, v ...interface{}) {
-	l.mux.Lock()
-	defer logger.mux.Unlock()
-
 	l.Logger.Log(
 		logging.Entry{Payload: fmt.Sprintf(format, v...)},
 	)
 }
 
 func (l *CloudLogger) error(v ...interface{}) {
-	l.mux.Lock()
-	defer logger.mux.Unlock()
-
 	l.Logger.Log(
 		logging.Entry{
 			Payload:  fmt.Sprintln(v...),

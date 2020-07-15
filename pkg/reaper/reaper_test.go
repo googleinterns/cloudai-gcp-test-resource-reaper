@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
@@ -40,6 +41,10 @@ var (
 	// ProjectID -> ResourceType -> Zones -> Resource
 	testData map[string]map[reaperconfig.ResourceType]map[string][]TestData
 )
+
+func init() {
+	logger.CreateLogger()
+}
 
 type ReaperRunTestCase struct {
 	Watchlist []*resources.WatchedResource
