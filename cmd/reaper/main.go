@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -77,8 +78,14 @@ func main() {
 	case "delete":
 		deleteCmd.Parse(os.Args[2:])
 		if len(*deleteUUID) == 0 {
-			fmt.Println("need to set -uuid flag reaper to delete")
-			os.Exit(1)
+			var err error
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Reaper UUID: ")
+			*deleteUUID, err = reader.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
+			*deleteUUID = strings.TrimSuffix(*deleteUUID, "\n")
 		}
 		err := reaperClient.DeleteReaper(*deleteUUID)
 		if err != nil {
