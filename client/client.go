@@ -40,9 +40,9 @@ func StartClient(ctx context.Context, address, port string) *ReaperClient {
 	reaperManagerClient := reaperconfig.NewReaperManagerClient(conn)
 
 	return &ReaperClient{
-		client: reaperManagerClient
-		conn: conn
-		ctx: ctx
+		client: reaperManagerClient,
+		conn:   conn,
+		ctx:    ctx,
 	}
 }
 
