@@ -38,7 +38,7 @@ func main() {
 
 	reaperClient := client.StartClient(context.Background(), "localhost", "8000")
 	defer reaperClient.Close()
-
+	fmt.Println("HERE")
 	switch os.Args[1] {
 	case "create":
 		config, err := createReaperConfigPrompt()
@@ -87,6 +87,14 @@ func main() {
 		}
 		fmt.Printf("Reaper with UUID %s successfully deleted\n", *deleteUUID)
 
+	case "report":
+		report, err := reaperClient.GetReport()
+		if err != nil {
+			fmt.Println("Generating report failed with following error: ", err.Error())
+			os.Exit(1)
+		}
+		fmt.Println(report)
+
 	case "start":
 		err := reaperClient.StartManager()
 		if err != nil {
@@ -102,7 +110,7 @@ func main() {
 		fmt.Println("Reaper manager shutdown")
 
 	default:
-		fmt.Println("expected 'create', 'update', 'list', 'delete', 'start', or 'shutdown' commands")
+		fmt.Println("expected 'create', 'update', 'list', 'delete', 'report', 'start', or 'shutdown' commands")
 		os.Exit(1)
 	}
 }

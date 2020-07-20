@@ -128,3 +128,14 @@ func (s *reaperManagerServer) ShutdownManager(ctx context.Context, req *empty.Em
 	s.Manager = nil
 	return new(empty.Empty), nil
 }
+
+func (s *reaperManagerServer) GetReport(ctx context.Context, req *empty.Empty) (*reaperconfig.Report, error) {
+	if s.Manager == nil {
+		return nil, fmt.Errorf("Reaper manager not started")
+	}
+	report, err := s.Manager.Report()
+	if err != nil {
+		return nil, err
+	}
+	return &reaperconfig.Report{Report: report}, nil
+}

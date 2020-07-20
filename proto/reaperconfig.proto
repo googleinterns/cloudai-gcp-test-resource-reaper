@@ -26,6 +26,7 @@ service ReaperManager {
     rpc ListRunningReapers(google.protobuf.Empty) returns (ReaperCluster) {};
     rpc StartManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
     rpc ShutdownManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
+    rpc GetReport(google.protobuf.Empty) returns (Report) {};
 }
 
 message Reaper {
@@ -82,6 +83,10 @@ message ResourceConfig {
     
     // Time to live of resources described in cron time string format.
     string ttl = 5;
+}
+
+message Report {
+    string report = 1;
 }
 
 /*

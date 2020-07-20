@@ -81,6 +81,14 @@ func (c *ReaperClient) ShutdownManager() error {
 	return err
 }
 
+func (c *ReaperClient) GetReport() (string, error) {
+	res, err := c.client.GetReport(c.ctx, new(empty.Empty))
+	if err != nil {
+		return "", err
+	}
+	return res.Report, nil
+}
+
 func (c *ReaperClient) Close() {
 	c.conn.Close()
 }

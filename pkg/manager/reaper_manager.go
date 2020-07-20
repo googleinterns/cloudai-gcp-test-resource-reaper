@@ -97,8 +97,6 @@ func (manager *ReaperManager) sweepReapers() {
 			deletedResources := reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
 			if deletedResources != nil && len(deletedResources) > 0 {
 				manager.deletedResources = append(manager.deletedResources, deletedResources...)
-				rep, _ := manager.Report()
-				fmt.Println(rep)
 			}
 		}
 	}
@@ -176,6 +174,8 @@ func (manager *ReaperManager) GetReaper(uuid string) *reaper.Reaper {
 	return nil
 }
 
+// Report creates a report of what reapers are currently being run, what resources
+// are being watched, and what resource have been deletes while the manager has been running.
 func (manager *ReaperManager) Report() (string, error) {
 	var report strings.Builder
 
@@ -193,9 +193,10 @@ func (manager *ReaperManager) Report() (string, error) {
 			}
 			report.WriteString(
 				fmt.Sprintf(
-					"\u2022 %s in %s to be deleted at %s\n",
+					"\u2022 %s in %s in project %s to be deleted at %s\n",
 					watchedResource.Name,
 					watchedResource.Zone,
+					reaper.ProjectID,
 					deletionTime.Format("2006-01-02 15:04:05"),
 				),
 			)
