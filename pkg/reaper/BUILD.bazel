@@ -20,6 +20,7 @@ go_test(
     srcs = ["reaper_test.go"],
     embed = [":go_default_library"],
     deps = [
+        "//pkg/logger:go_default_library",
         "//pkg/resources:go_default_library",
         "//proto:go_default_library",
         "@org_golang_google_api//option:go_default_library",

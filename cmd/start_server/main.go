@@ -35,7 +35,10 @@ func main() {
 	}
 	defer logger.Close()
 	if len(*logsProject) > 0 && len(*logsName) > 0 {
-		logger.AddCloudLogger(context.Background(), *logsProject, *logsName)
+		err := logger.AddCloudLogger(context.Background(), *logsProject, *logsName)
+		if err != nil {
+			log.Fatalf("Failed to create cloud logger: %v", err)
+		}
 	}
 
 	manager.StartServer(*port)

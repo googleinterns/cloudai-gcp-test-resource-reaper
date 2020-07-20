@@ -65,26 +65,27 @@ func NewReaper() *Reaper {
 }
 
 // RunOnSchedule updates the reaper's watchlist and runs a sweep if the current time is equal to or after
-// the next schedule run time.
-func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) bool {
+// the next schedule run time. Returns all the resources that were deleted, or nil if the reaper was not run.
+func (reaper *Reaper) RunOnSchedule(ctx context.Context, clientOptions ...option.ClientOption) []*resources.Resource {
 	nextRun := reaper.Schedule.Next(reaper.lastRun)
 	if reaper.lastRun.IsZero() || reaper.Clock.Now().After(nextRun) || reaper.Clock.Now().Equal(nextRun) {
 		logger.Logf("Running reaper with UUID: %s\n", reaper.UUID)
 		reaper.GetResources(ctx, clientOptions...)
 
 		logger.Logf("Reaper %s sweeping through the following resources: %s", reaper.UUID, reaper.WatchlistString())
-		reaper.SweepThroughResources(ctx, clientOptions...)
+		deletedResources := reaper.SweepThroughResources(ctx, clientOptions...)
 		reaper.lastRun = reaper.Clock.Now()
-		return true
+		return deletedResources
 	}
-	return false
+	return nil
 }
 
 // SweepThroughResources goes through all the resources in the reaper's Watchlist, and for each resource
 // determines if it needs to be deleted. The necessary resources are deleted from GCP and the reaper's
 // Watchlist is updated accordingly.
-func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions ...option.ClientOption) {
+func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions ...option.ClientOption) []*resources.Resource {
 	var updatedWatchlist []*resources.WatchedResource
+	deletedResources := []*resources.Resource{}
 
 	for _, watchedResource := range reaper.Watchlist {
 		if watchedResource.IsReadyForDeletion() {
@@ -106,11 +107,13 @@ func (reaper *Reaper) SweepThroughResources(ctx context.Context, clientOptions .
 				"Deleted %s resource %s in zone %s\n",
 				watchedResource.Type.String(), watchedResource.Name, watchedResource.Zone,
 			)
+			deletedResources = append(deletedResources, watchedResource.Resource)
 		} else {
 			updatedWatchlist = append(updatedWatchlist, watchedResource)
 		}
 	}
 	reaper.Watchlist = updatedWatchlist
+	return deletedResources
 }
 
 // UpdateReaperConfig updates the reaper from a given ReaperConfig proto.

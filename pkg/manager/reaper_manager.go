@@ -92,7 +92,8 @@ func (manager *ReaperManager) sweepReapers() {
 		logger.Logf("Reaper with UUID %s successfully updated", newReaperConfig.Uuid)
 	default:
 		for _, reaper := range manager.Reapers {
-			reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
+			deletedResources := reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
+			fmt.Println(deletedResources)
 		}
 	}
 }
@@ -107,7 +108,7 @@ func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.
 	newReaper := reaper.NewReaper()
 	err := newReaper.UpdateReaperConfig(newReaperConfig)
 	if err != nil {
-		logger.Error(fmt.Errorf("error adding reaper: %v\n", err))
+		logger.Error(fmt.Errorf("error adding reaper: %v", err))
 		return
 	}
 	manager.newReaper <- newReaper
