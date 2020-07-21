@@ -19,19 +19,6 @@ import "google/protobuf/empty.proto";
 package reaperconfig;
 option go_package = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig";
 
-service ReaperManager {
-    rpc AddReaper(ReaperConfig) returns (Reaper) {};
-    rpc UpdateReaper(ReaperConfig) returns (Reaper) {};
-    rpc DeleteReaper(Reaper) returns (Reaper) {};
-    rpc ListRunningReapers(google.protobuf.Empty) returns (ReaperCluster) {};
-    rpc StartManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
-    rpc ShutdownManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
-}
-
-message Reaper {
-    string uuid = 1;
-}
-
 /*
 The ReaperManager gRPC service is how reapers can be created, deleted, and monitored dynamically. The
 reaper manager is the controller for the reapers.
