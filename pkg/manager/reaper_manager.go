@@ -179,7 +179,7 @@ func (manager *ReaperManager) GetReaper(uuid string) *reaper.Reaper {
 func (manager *ReaperManager) Report() (string, error) {
 	var report strings.Builder
 
-	report.WriteString("Reaper Manager Report\n\nRunning Reapers:\n")
+	report.WriteString("Running Reapers:\n")
 	for _, reaper := range manager.Reapers {
 		report.WriteString(fmt.Sprintf("\u2022 %s\n", reaper.UUID))
 	}

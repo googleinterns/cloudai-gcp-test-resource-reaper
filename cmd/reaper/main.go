@@ -32,13 +32,13 @@ func main() {
 	deleteUUID := deleteCmd.String("uuid", "", "UUID of the reaper")
 
 	if len(os.Args) < 2 {
-		fmt.Println("expected 'create', 'update', 'list', 'delete', 'start', or 'shutdown' commands")
+		fmt.Println("expected 'create', 'update', 'list', 'delete', 'report', 'start', or 'shutdown' commands")
 		os.Exit(1)
 	}
 
 	reaperClient := client.StartClient(context.Background(), "localhost", "8000")
 	defer reaperClient.Close()
-	fmt.Println("HERE")
+
 	switch os.Args[1] {
 	case "create":
 		config, err := createReaperConfigPrompt()
