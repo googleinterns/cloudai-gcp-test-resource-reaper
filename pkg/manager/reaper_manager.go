@@ -16,9 +16,9 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
@@ -34,12 +34,9 @@ type ReaperManager struct {
 	clientOptions []option.ClientOption
 	newReaper     chan *reaper.Reaper
 	deleteReaper  chan string
+	updateReaper  chan *reaperconfig.ReaperConfig
 	quit          chan bool
 }
-
-// Start thread for each reaper
-// https://golang.org/pkg/time/#Tick
-// https://gist.github.com/ryanfitz/4191392
 
 // NewReaperManager creates a new reaper manager.
 func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption) *ReaperManager {
@@ -48,15 +45,9 @@ func NewReaperManager(ctx context.Context, clientOptions ...option.ClientOption)
 		clientOptions: clientOptions,
 		newReaper:     make(chan *reaper.Reaper, 3),
 		deleteReaper:  make(chan string, 3),
+		updateReaper:  make(chan *reaperconfig.ReaperConfig, 3),
 		quit:          make(chan bool, 1),
 	}
-}
-
-func (manager *ReaperManager) Start() {
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go manager.MonitorReapers(wg)
-	wg.Wait()
 }
 
 // MonitorReapers is the controller for all running reapers. It continuously
@@ -64,8 +55,8 @@ func (manager *ReaperManager) Start() {
 // whether a new reaper has been added to the manager, or if the the manager
 // should be stopped. Note that MonitorReapers should be called in a separate
 // goroutine.
-func (manager *ReaperManager) MonitorReapers(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (manager *ReaperManager) MonitorReapers() {
+	log.Println("Starting Reaper Manager")
 	for {
 		select {
 		case <-manager.quit:
@@ -91,7 +82,12 @@ func (manager *ReaperManager) sweepReapers() {
 		if deleteSuccess {
 			log.Printf("Reaper with UUID %s successfully deleted", reaperUUID)
 		} else {
-			log.Printf("Reaper with UUID %s unsuccessfully deleted", reaperUUID)
+			log.Printf("Reaper with UUID %s does not exist", reaperUUID)
+		}
+	case newReaperConfig := <-manager.updateReaper:
+		err := manager.handleUpdateReaper(newReaperConfig)
+		if err != nil {
+			log.Println(err)
 		}
 	default:
 		for _, reaper := range manager.Reapers {
@@ -108,18 +104,27 @@ func (manager *ReaperManager) AddReaper(newReaper *reaper.Reaper) {
 // AddReaperFromConfig adds a reaper to the manager from a ReaperConfig.
 func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.ReaperConfig) {
 	newReaper := reaper.NewReaper()
-	newReaper.UpdateReaperConfig(newReaperConfig)
+	err := newReaper.UpdateReaperConfig(newReaperConfig)
+	if err != nil {
+		log.Printf("Error adding reaper: %v\n", err)
+		return
+	}
 	manager.newReaper <- newReaper
-}
-
-// Shutdown ends the reaper manager process.
-func (manager *ReaperManager) Shutdown() {
-	manager.quit <- true
 }
 
 // DeleteReaper sends a signal to delete a reaper with the given UUID.
 func (manager *ReaperManager) DeleteReaper(uuid string) {
 	manager.deleteReaper <- uuid
+}
+
+// UpdateReaper sends a signal to update a reaper with UUID given in the config.
+func (manager *ReaperManager) UpdateReaper(config *reaperconfig.ReaperConfig) {
+	manager.updateReaper <- config
+}
+
+// Shutdown ends the reaper manager process.
+func (manager *ReaperManager) Shutdown() {
+	manager.quit <- true
 }
 
 // handleDeleteReaper deletes the reaper with the given UUID, and returns whether the delete
@@ -133,6 +138,18 @@ func (manager *ReaperManager) handleDeleteReaper(uuid string) bool {
 		}
 	}
 	return false
+}
+
+// handleUpdateReaper updates the reaper with the given UUID from the config, and returns
+// whether the update was successful.
+func (manager *ReaperManager) handleUpdateReaper(config *reaperconfig.ReaperConfig) error {
+	for _, watchedReaper := range manager.Reapers {
+		if strings.Compare(watchedReaper.UUID, config.GetUuid()) == 0 {
+			err := watchedReaper.UpdateReaperConfig(config)
+			return err
+		}
+	}
+	return fmt.Errorf("Reaper with UUID %s does not exist", config.GetUuid())
 }
 
 // ListReapers returns a list of reapers being managed by the ReaperManager.

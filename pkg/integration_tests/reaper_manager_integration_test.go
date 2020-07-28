@@ -16,7 +16,6 @@ package integration_tests
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -36,9 +35,7 @@ func TestReaperManagerIntegration(t *testing.T) {
 	}
 
 	reaperManager := manager.NewReaperManager(context.Background())
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go reaperManager.MonitorReapers(wg)
+	go reaperManager.MonitorReapers()
 
 	resources := []*reaperconfig.ResourceConfig{
 		reaper.NewResourceConfig(reaperconfig.ResourceType_GCE_VM, []string{"us-east1-b", "us-east1-c"}, "test", "skip", "@every 1m"),
@@ -56,6 +53,4 @@ func TestReaperManagerIntegration(t *testing.T) {
 	newReaper.FreezeTime(time.Now().AddDate(0, 1, 0))
 
 	reaperManager.AddReaper(newReaper)
-
-	wg.Wait()
 }
