@@ -35,7 +35,10 @@ func main() {
 	}
 	defer logger.Close()
 	if len(*projectID) > 0 && len(*logsName) > 0 {
-		logger.AddCloudLogger(context.Background(), *projectID, *logsName)
+		err := logger.AddCloudLogger(context.Background(), *projectID, *logsName)
+		if err != nil {
+			log.Fatal(err)
+		}
 		logger.Logf("Logging to %s in project", *logsName, *projectID)
 	}
 
