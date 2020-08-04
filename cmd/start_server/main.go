@@ -15,9 +15,32 @@
 package main
 
 import (
+	"context"
+	"flag"
+	"log"
+
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/manager"
 )
 
 func main() {
-	manager.StartServer("localhost", "8000")
+	port := flag.String("port", "8000", "port to run gRPC server on")
+	projectID := flag.String("project-id", "", "GCP Project ID for where to store logs")
+	logsName := flag.String("logs-name", "", "name of logs")
+
+	flag.Parse()
+
+	if err := logger.CreateLogger(); err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Close()
+	if len(*projectID) > 0 && len(*logsName) > 0 {
+		err := logger.AddCloudLogger(context.Background(), *projectID, *logsName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logger.Logf("Logging to %s in project", *logsName, *projectID)
+	}
+
+	manager.StartServer(*port)
 }

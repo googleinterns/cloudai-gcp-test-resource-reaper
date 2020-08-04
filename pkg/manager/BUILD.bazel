@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/manager",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/logger:go_default_library",
         "//pkg/reaper:go_default_library",
         "//proto:go_default_library",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
