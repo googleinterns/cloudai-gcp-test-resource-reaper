@@ -537,3 +537,17 @@ go_repository(
     sum = "h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=",
     version = "v3.0.1",
 )
+
+go_repository(
+    name = "com_github_googleapis_google_cloud_go_testing",
+    importpath = "github.com/googleapis/google-cloud-go-testing",
+    sum = "h1:YBqybTXA//1pltKcwyntNQdgDw6AnA5oHZCXFOiZhoo=",
+    version = "v0.0.0-20191008195207-8e1d251e947d",
+)
+
+go_repository(
+    name = "com_google_cloud_go_logging",
+    importpath = "cloud.google.com/go/logging",
+    sum = "h1:kaunpnoEh9L4hu6JUsBa8Y20LBfKnCuDhKUgdZp7oK8=",
+    version = "v1.0.0",
+)

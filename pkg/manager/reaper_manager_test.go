@@ -22,10 +22,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
 )
+
+func init() {
+	logger.CreateLogger()
+}
 
 type OperationType int
 

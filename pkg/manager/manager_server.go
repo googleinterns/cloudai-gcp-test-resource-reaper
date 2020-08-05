@@ -17,10 +17,11 @@ package manager
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
+	"os"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -34,13 +35,16 @@ type reaperManagerServer struct {
 }
 
 // StartServer starts the gRPC server listing on the given address and port.
-func StartServer(address, port string, clientOptions ...option.ClientOption) {
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", address, port))
+func StartServer(port string, clientOptions ...option.ClientOption) {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
+		os.Exit(1)
 	}
 
-	log.Printf("Starting gRPC Server on %s:%s\n", address, port)
+	logger.Logf("------------------ Starting gRPC Server on :%s ------------------\n", port)
+	defer logger.Log("------------------ Shutting down gRPC Server ------------------")
+
 	server := grpc.NewServer()
 	reaperconfig.RegisterReaperManagerServer(server, &reaperManagerServer{})
 	server.Serve(lis)
