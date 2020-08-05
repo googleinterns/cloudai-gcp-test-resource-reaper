@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -76,9 +77,15 @@ func main() {
 
 	case "delete":
 		deleteCmd.Parse(os.Args[2:])
-		if len(strings.TrimSpace(*deleteUUID)) == 0 {
-			fmt.Println("need to set -uuid flag reaper to delete")
-			os.Exit(1)
+		if len(*deleteUUID) == 0 {
+			var err error
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Reaper UUID: ")
+			*deleteUUID, err = reader.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
+			*deleteUUID = strings.TrimSuffix(*deleteUUID, "\n")
 		}
 		err := reaperClient.DeleteReaper(*deleteUUID)
 		if err != nil {
@@ -126,21 +133,21 @@ func createReaperConfigPrompt() (*reaperconfig.ReaperConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	uuid = strings.TrimSpace(uuid)
+	uuid = strings.TrimSuffix(uuid, "\n")
 
 	fmt.Print("Project ID: ")
 	projectID, err := reader.ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
-	projectID = strings.TrimSpace(projectID)
+	projectID = strings.TrimSuffix(projectID, "\n")
 
 	fmt.Print("Reaper run schedule (in cron time string format): ")
 	schedule, err := reader.ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
-	schedule = strings.TrimSpace(schedule)
+	schedule = strings.TrimSuffix(schedule, "\n")
 
 	var resources []*reaperconfig.ResourceConfig
 	for {
@@ -158,7 +165,7 @@ func createReaperConfigPrompt() (*reaperconfig.ReaperConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		resourceTypeString = strings.TrimSpace(resourceTypeString)
+		resourceTypeString = strings.TrimSuffix(resourceTypeString, "\n")
 		var resourceType reaperconfig.ResourceType
 
 		switch resourceTypeString {
@@ -177,7 +184,7 @@ func createReaperConfigPrompt() (*reaperconfig.ReaperConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		zonesString = strings.TrimSpace(zonesString)
+		zonesString = strings.TrimSuffix(zonesString, "\n")
 		zones := strings.Split(zonesString, ",")
 
 		fmt.Print("Name filter: ")
@@ -185,21 +192,21 @@ func createReaperConfigPrompt() (*reaperconfig.ReaperConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		nameFilter = strings.TrimSpace(nameFilter)
+		nameFilter = strings.TrimSuffix(nameFilter, "\n")
 
 		fmt.Print("Skip filter: ")
 		skipFilter, err := reader.ReadString('\n')
 		if err != nil {
 			return nil, err
 		}
-		skipFilter = strings.TrimSpace(skipFilter)
+		skipFilter = strings.TrimSuffix(skipFilter, "\n")
 
 		fmt.Print("TTL (in cron time string format): ")
 		ttl, err := reader.ReadString('\n')
 		if err != nil {
 			return nil, err
 		}
-		ttl = strings.TrimSpace(ttl)
+		ttl = strings.TrimSuffix(ttl, "\n")
 
 		resources = append(
 			resources,

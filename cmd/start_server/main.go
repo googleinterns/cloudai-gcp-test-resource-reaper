@@ -25,7 +25,7 @@ import (
 
 func main() {
 	port := flag.String("port", "8000", "port to run gRPC server on")
-	logsProject := flag.String("logs-project", "", "GCP Project ID for where to store logs")
+	projectID := flag.String("project-id", "", "GCP Project ID for where to store logs")
 	logsName := flag.String("logs-name", "", "name of logs")
 
 	flag.Parse()
@@ -34,11 +34,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer logger.Close()
-	if len(*logsProject) > 0 && len(*logsName) > 0 {
-		err := logger.AddCloudLogger(context.Background(), *logsProject, *logsName)
+	if len(*projectID) > 0 && len(*logsName) > 0 {
+		err := logger.AddCloudLogger(context.Background(), *projectID, *logsName)
 		if err != nil {
-			log.Fatalf("Failed to create cloud logger: %v", err)
+			log.Fatal(err)
 		}
+		logger.Logf("Logging to %s in project", *logsName, *projectID)
 	}
 
 	manager.StartServer(*port)

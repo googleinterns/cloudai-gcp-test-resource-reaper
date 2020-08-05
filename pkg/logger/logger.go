@@ -75,7 +75,10 @@ func Error(v ...interface{}) {
 func Close() {
 	if logger.CloudLogger != nil {
 		logger.CloudLogger.closeLogger()
+<<<<<<< HEAD
 		logger.CloudLogger = nil
+=======
+>>>>>>> 8299c7fefb9665db3e65e1d652a20f02a35bc669
 	}
 }
 
