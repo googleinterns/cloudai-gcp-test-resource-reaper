@@ -42,6 +42,7 @@ service ReaperManager {
     // End the reaper manager process, also deleting all running reapers.
     rpc ShutdownManager(google.protobuf.Empty) returns (google.protobuf.Empty) {};
 
+    // Returns the reaper manager report.
     rpc GetReport(google.protobuf.Empty) returns (Report) {};
 }
 
@@ -104,6 +105,10 @@ message ResourceConfig {
     string ttl = 5;
 }
 
+/*
+A report is a formatted string of what reapers are running, what resources are 
+being watched and which resources have been deleted. 
+*/
 message Report {
     string report = 1;
 }
