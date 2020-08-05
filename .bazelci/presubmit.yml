@@ -1,9 +1,0 @@
----
-tasks:
-  ubuntu1804:
-    shards: 4
-    test_flags:
-      - "--test_arg=-test.short"
-    test_targets:
-      - "//pkg/..."
-      
