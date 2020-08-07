@@ -22,6 +22,7 @@ import (
 
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/logger"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/reaper"
+	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/pkg/resources"
 	"github.com/googleinterns/cloudai-gcp-test-resource-reaper/reaperconfig"
 	"google.golang.org/api/option"
 )
@@ -30,12 +31,13 @@ import (
 type ReaperManager struct {
 	Reapers []*reaper.Reaper
 
-	ctx           context.Context
-	clientOptions []option.ClientOption
-	newReaper     chan *reaper.Reaper
-	deleteReaper  chan string
-	updateReaper  chan *reaperconfig.ReaperConfig
-	quit          chan bool
+	ctx              context.Context
+	clientOptions    []option.ClientOption
+	newReaper        chan *reaper.Reaper
+	deleteReaper     chan string
+	updateReaper     chan *reaperconfig.ReaperConfig
+	quit             chan bool
+	deletedResources []*resources.Resource
 }
 
 // NewReaperManager creates a new reaper manager.
@@ -92,7 +94,10 @@ func (manager *ReaperManager) sweepReapers() {
 		logger.Logf("Reaper with UUID %s successfully updated", newReaperConfig.Uuid)
 	default:
 		for _, reaper := range manager.Reapers {
-			reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
+			deletedResources := reaper.RunOnSchedule(manager.ctx, manager.clientOptions...)
+			if deletedResources != nil && len(deletedResources) > 0 {
+				manager.deletedResources = append(manager.deletedResources, deletedResources...)
+			}
 		}
 	}
 }
@@ -107,7 +112,7 @@ func (manager *ReaperManager) AddReaperFromConfig(newReaperConfig *reaperconfig.
 	newReaper := reaper.NewReaper()
 	err := newReaper.UpdateReaperConfig(newReaperConfig)
 	if err != nil {
-		logger.Error(fmt.Errorf("error adding reaper: %v\n", err))
+		logger.Error(fmt.Errorf("error adding reaper: %v", err))
 		return
 	}
 	manager.newReaper <- newReaper
@@ -167,4 +172,40 @@ func (manager *ReaperManager) GetReaper(uuid string) *reaper.Reaper {
 		}
 	}
 	return nil
+}
+
+// Report creates a report of what reapers are currently being run, what resources
+// are being watched, and what resource have been deletes while the manager has been running.
+func (manager *ReaperManager) Report() (string, error) {
+	var report strings.Builder
+
+	report.WriteString("Running Reapers:\n")
+	for _, reaper := range manager.Reapers {
+		report.WriteString(fmt.Sprintf("\u2022 %s\n", reaper.UUID))
+	}
+
+	report.WriteString("\nWatched Resources:\n")
+	for _, reaper := range manager.Reapers {
+		for _, watchedResource := range reaper.Watchlist {
+			deletionTime, err := watchedResource.GetDeletionTime()
+			if err != nil {
+				return "", err
+			}
+			report.WriteString(
+				fmt.Sprintf(
+					"\u2022 %s in %s in project %s to be deleted at %s\n",
+					watchedResource.Name,
+					watchedResource.Zone,
+					reaper.ProjectID,
+					deletionTime.Format("2006-01-02 15:04:05"),
+				),
+			)
+		}
+	}
+
+	report.WriteString("\nDeleted Resources:\n")
+	for _, deletedResource := range manager.deletedResources {
+		report.WriteString(fmt.Sprintf("\u2022 %s in %s\n", deletedResource.Name, deletedResource.Zone))
+	}
+	return report.String(), nil
 }

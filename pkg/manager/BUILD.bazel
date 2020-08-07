@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//pkg/logger:go_default_library",
         "//pkg/reaper:go_default_library",
+        "//pkg/resources:go_default_library",
         "//proto:go_default_library",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
         "@org_golang_google_api//option:go_default_library",
@@ -26,6 +27,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//pkg/logger:go_default_library",
         "//pkg/reaper:go_default_library",
         "//pkg/utils:go_default_library",
         "//proto:go_default_library",

@@ -226,16 +226,16 @@ func TestGetResources(t *testing.T) {
 type RunScheduleTestCase struct {
 	Schedule string
 	LastRun  time.Time
-	Expected bool
+	Expected []*resources.Resource
 }
 
 var runScheduleTestCases = []RunScheduleTestCase{
-	RunScheduleTestCase{"* * * * *", time.Time{}, true},
-	RunScheduleTestCase{"* * * 10 *", time.Time{}, true},
-	RunScheduleTestCase{"* 11 * * *", currentTime.Add(-1 * time.Hour), false},
-	RunScheduleTestCase{"* 10 * * *", currentTime.Add(-1 * time.Hour), true},
-	RunScheduleTestCase{"@every 1m", currentTime.Add(-2 * time.Minute), true},
-	RunScheduleTestCase{"@every 1h", currentTime.Add(-1 * time.Hour), true},
+	RunScheduleTestCase{"* * * * *", time.Time{}, []*resources.Resource{}},
+	RunScheduleTestCase{"* * * 10 *", time.Time{}, []*resources.Resource{}},
+	RunScheduleTestCase{"* 11 * * *", currentTime.Add(-1 * time.Hour), nil},
+	RunScheduleTestCase{"* 10 * * *", currentTime.Add(-1 * time.Hour), []*resources.Resource{}},
+	RunScheduleTestCase{"@every 1m", currentTime.Add(-2 * time.Minute), []*resources.Resource{}},
+	RunScheduleTestCase{"@every 1h", currentTime.Add(-1 * time.Hour), []*resources.Resource{}},
 }
 
 func TestRunOnSchedule(t *testing.T) {
@@ -243,8 +243,8 @@ func TestRunOnSchedule(t *testing.T) {
 		reaper := createTestReaper("sampleProject", testCase.Schedule)
 		reaper.FreezeClock(currentTime)
 		reaper.lastRun = testCase.LastRun
-		if result := reaper.RunOnSchedule(testContext); result != testCase.Expected {
-			t.Errorf("Reaper did run: %v, Should reaper run: %v", result, testCase.Expected)
+		if result := reaper.RunOnSchedule(testContext); !reflect.DeepEqual(result, testCase.Expected) {
+			t.Errorf("Reaper did run: %v, Should reaper run: %v", result != nil, testCase.Expected != nil)
 		}
 	}
 }
